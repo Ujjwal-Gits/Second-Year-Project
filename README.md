@@ -40,13 +40,14 @@ hamroyatra/
 
 ## Team & Branch Structure
 
-| Branch           | Member           | Responsibility                                                                       |
-| ---------------- | ---------------- | ------------------------------------------------------------------------------------ |
-| `main`           | —                | Stable production-ready code                                                         |
-| `ujjwal`         | Ujjwal (Lead)    | Home page, server setup, DB connection, backend API, dashboard integration           |
-| `anjali-aakriti` | Anjali & Aakriti | Traveller dashboard, Agent dashboard frontend                                        |
-| `puskar`         | Puskar           | Auth system (login/register/OTP/Google OAuth), Verification page, Advertisement page |
-| `aashika`        | Aashika          | Profile page, Verified Partners page, Database schema/models                         |
+| Branch    | Member        | Responsibility                                                                                            |
+| --------- | ------------- | --------------------------------------------------------------------------------------------------------- |
+| `main`    | —             | Stable production-ready code. All branches merge here via Pull Request.                                   |
+| `ujjwal`  | Ujjwal (Lead) | Home page, server setup, DB connection, backend API routes, dashboard integration, AI plan, explore page  |
+| `anjali`  | Anjali        | Agent dashboard frontend (bookings, listings, analytics, team, calendar)                                  |
+| `aakriti` | Aakriti       | Traveller dashboard frontend (bookings, trip progress, reviews, messages)                                 |
+| `puskar`  | Puskar        | Auth system (login/register/OTP/Google OAuth), Verification page, Advertisement page, backend auth routes |
+| `aashika` | Aashika       | Profile page, Verified Partners page, all database models/schema                                          |
 
 ---
 
