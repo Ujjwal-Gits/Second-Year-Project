@@ -23,10 +23,14 @@ const checkLicenseExpiries = require("./services/licenseWatcher"); // Guide lice
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Allow requests from the frontend dev servers
+// Allow requests from the frontend dev servers and production domain
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://hamroyatra.ujjwalrupakheti.com.np",
+    ],
     credentials: true, // needed for cookies (JWT)
   }),
 );
