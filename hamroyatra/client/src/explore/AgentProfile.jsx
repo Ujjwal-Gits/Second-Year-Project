@@ -12,7 +12,7 @@ const ProfileListingCard = ({ listing: l, agentName, index }) => {
   const imgSrc = l.images?.[0]
     ? l.images[0].startsWith("http")
       ? l.images[0]
-      : `http://localhost:5000${l.images[0]}`
+      : `import.meta.env.VITE_API_URL${l.images[0]}`
     : "https://images.unsplash.com/photo-1544735749-2e78311e09f1?q=80&w=1470&auto=format&fit=crop";
   const stayLabel = l.type === "hotel" ? "Hotel Stay" : `${l.duration} Days`;
 
@@ -137,12 +137,12 @@ const AgentProfile = ({ isAuthenticated, user }) => {
   const fetchAgent = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:5000/api/agent/${id}`);
+      const res = await axios.get(`import.meta.env.VITE_API_URL/api/agent/${id}`);
       setAgent(res.data);
       setFollowerCount(res.data.followers?.length || 0);
       if (isAuthenticated && user) {
         const fRes = await axios.get(
-          `http://localhost:5000/api/agent/${id}/is-following/${user.id}`,
+          `import.meta.env.VITE_API_URL/api/agent/${id}/is-following/${user.id}`,
         );
         setIsFollowing(fRes.data.following);
       }
@@ -163,7 +163,7 @@ const AgentProfile = ({ isAuthenticated, user }) => {
     try {
       setFollowLoading(true);
       const res = await axios.post(
-        `http://localhost:5000/api/agent/${id}/follow`,
+        `import.meta.env.VITE_API_URL/api/agent/${id}/follow`,
         { travellerId: user.id },
       );
       setIsFollowing(res.data.following);
@@ -179,7 +179,7 @@ const AgentProfile = ({ isAuthenticated, user }) => {
     e.preventDefault();
     try {
       await axios.post(
-        "http://localhost:5000/api/dashboard/public/message",
+        "import.meta.env.VITE_API_URL/api/dashboard/public/message",
         {
           customerName: isAuthenticated
             ? user.fullName || user.username
@@ -273,13 +273,13 @@ const AgentProfile = ({ isAuthenticated, user }) => {
   const coverImg = agent.coverImage
     ? agent.coverImage.startsWith("http")
       ? agent.coverImage
-      : `http://localhost:5000${agent.coverImage}`
+      : `import.meta.env.VITE_API_URL${agent.coverImage}`
     : "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=1471&q=80";
 
   const profileImg = agent.profileImage
     ? agent.profileImage.startsWith("http")
       ? agent.profileImage
-      : `http://localhost:5000${agent.profileImage}`
+      : `import.meta.env.VITE_API_URL${agent.profileImage}`
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(agent.companyName || agent.fullName || "A")}&background=1D7447&color=fff&size=512`;
 
   const services = agent.serviceTypes || [];
@@ -580,7 +580,7 @@ const AgentProfile = ({ isAuthenticated, user }) => {
                   const guideImg = guide.profileImage
                     ? guide.profileImage.startsWith("http")
                       ? guide.profileImage
-                      : `http://localhost:5000${guide.profileImage}`
+                      : `import.meta.env.VITE_API_URL${guide.profileImage}`
                     : null;
                   const initials = (guide.fullName || "G")
                     .split(" ")
@@ -709,7 +709,7 @@ const AgentProfile = ({ isAuthenticated, user }) => {
                 src={
                   selectedGuide.certificateImage?.startsWith("http")
                     ? selectedGuide.certificateImage
-                    : `http://localhost:5000${selectedGuide.certificateImage}`
+                    : `import.meta.env.VITE_API_URL${selectedGuide.certificateImage}`
                 }
                 alt="Guide Certificate"
                 className="w-full rounded-[20px] shadow-2xl"

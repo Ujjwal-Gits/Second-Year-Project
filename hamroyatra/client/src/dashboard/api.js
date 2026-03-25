@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000/api/dashboard";
+const API_BASE = "import.meta.env.VITE_API_URL/api/dashboard";
 
 const api = axios.create({
   baseURL: API_BASE,

@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 function parseAIMessage(text) {
   const parts = [];

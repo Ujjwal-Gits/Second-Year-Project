@@ -4,7 +4,7 @@ import { Line, Doughnut } from 'react-chartjs-2';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = 'import.meta.env.VITE_API_URL/api';
 
 const StatCard = ({ icon, label, value, change, color = 'green', index = 0, onClick }) => {
     const isPositive = parseFloat(change) >= 0;

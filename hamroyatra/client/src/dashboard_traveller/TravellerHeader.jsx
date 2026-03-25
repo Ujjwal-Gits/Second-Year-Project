@@ -13,7 +13,7 @@ const TravellerHeader = ({ user, onLogout, onTabChange, onToggleSidebar }) => {
     const fetchNotifications = async () => {
         try {
             setLoadingNotifs(true);
-            const { data } = await axios.get('http://localhost:5000/api/dashboard/traveller/notifications', { withCredentials: true });
+            const { data } = await axios.get('import.meta.env.VITE_API_URL/api/dashboard/traveller/notifications', { withCredentials: true });
             setNotifications(data);
         } catch (err) {
             console.error("Failed to fetch traveller notifications:", err);
@@ -24,7 +24,7 @@ const TravellerHeader = ({ user, onLogout, onTabChange, onToggleSidebar }) => {
 
     const markAllRead = async () => {
         try {
-            await axios.put('http://localhost:5000/api/dashboard/traveller/notifications/mark-read', {}, { withCredentials: true });
+            await axios.put('import.meta.env.VITE_API_URL/api/dashboard/traveller/notifications/mark-read', {}, { withCredentials: true });
             setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         } catch (err) {
             console.error("Failed to mark read:", err);

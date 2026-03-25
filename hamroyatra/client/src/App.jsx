@@ -71,7 +71,7 @@ function App() {
     const verifySession = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/auth/verify",
+          "import.meta.env.VITE_API_URL/api/auth/verify",
           { withCredentials: true },
         );
         if (response.data.valid) {
@@ -97,7 +97,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await axios.get("http://localhost:5000/api/auth/logout", {
+      await axios.get("import.meta.env.VITE_API_URL/api/auth/logout", {
         withCredentials: true,
       });
     } catch (e) {}
