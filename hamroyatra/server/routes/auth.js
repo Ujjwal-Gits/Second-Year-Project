@@ -4,6 +4,7 @@
 const express = require("express");
 const router = express.Router();
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const {
   login,
   registerTraveller,
@@ -17,8 +18,7 @@ const { sendOTP, verifyOTP } = require("../services/otpService");
 const otpRequestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
-  keyGenerator: (req) =>
-    (req.body.email || req.ip || "unknown").replace(/[:\[\]]/g, "_"),
+  keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
   message: { error: "Too many OTP requests. Please wait 15 minutes." },
 });
 
@@ -26,8 +26,7 @@ const otpRequestLimiter = rateLimit({
 const otpVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  keyGenerator: (req) =>
-    (req.body.email || req.ip || "unknown").replace(/[:\[\]]/g, "_"),
+  keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
   message: { error: "Too many attempts. Please request a new OTP." },
 });
 
