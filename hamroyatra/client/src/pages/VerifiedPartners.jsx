@@ -410,25 +410,24 @@ const VerifiedPartners = () => {
       {/* FILTER BAR */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1280px] mx-auto px-4 md:px-10 py-2.5 md:py-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setFilter(cat.id)}
-                  className={`flex items-center gap-1.5 px-3 md:px-5 py-1.5 md:py-2.5 rounded-full transition-all duration-300 text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${activeFilter === cat.id ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600"}`}
+          {/* Mobile: filters + search wrap naturally, search fills remaining space on last row */}
+          <div className="flex md:hidden flex-wrap items-center gap-1.5">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setFilter(cat.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${activeFilter === cat.id ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
+              >
+                <span
+                  className={`material-icons text-[12px] ${activeFilter === cat.id ? "text-accent" : "text-gray-300"}`}
                 >
-                  <span
-                    className={`material-icons text-[12px] md:text-[14px] ${activeFilter === cat.id ? "text-accent" : "text-gray-300"}`}
-                  >
-                    {cat.icon}
-                  </span>
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5 gap-1.5 shrink-0 w-[130px] md:w-[300px] transition-all focus-within:border-primary/30">
-              <span className="material-icons text-gray-300 text-[15px]">
+                  {cat.icon}
+                </span>
+                {cat.label}
+              </button>
+            ))}
+            <div className="flex items-center bg-gray-50 border border-gray-100 rounded-full px-3 py-1.5 gap-1.5 flex-1 min-w-[100px] focus-within:border-primary/30">
+              <span className="material-icons text-gray-300 text-[14px]">
                 search
               </span>
               <input
@@ -439,11 +438,49 @@ const VerifiedPartners = () => {
                 className="bg-transparent border-none outline-none text-gray-700 text-[11px] font-medium w-full placeholder:text-gray-300"
               />
               {search && (
+                <button onClick={() => setSearch("")}>
+                  <span className="material-icons text-gray-300 text-[13px]">
+                    close
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Desktop */}
+          <div className="hidden md:flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setFilter(cat.id)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all duration-300 text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${activeFilter === cat.id ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600"}`}
+                >
+                  <span
+                    className={`material-icons text-[14px] ${activeFilter === cat.id ? "text-accent" : "text-gray-300"}`}
+                  >
+                    {cat.icon}
+                  </span>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center bg-gray-50 border border-gray-100 rounded-full px-4 py-2.5 gap-2 max-w-[300px] w-full focus-within:border-primary/30">
+              <span className="material-icons text-gray-300 text-[18px]">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search agencies, locations..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-transparent border-none outline-none text-gray-700 text-[12px] font-medium w-full placeholder:text-gray-300"
+              />
+              {search && (
                 <button
                   onClick={() => setSearch("")}
                   className="text-gray-300 hover:text-gray-500"
                 >
-                  <span className="material-icons text-[13px]">close</span>
+                  <span className="material-icons text-[14px]">close</span>
                 </button>
               )}
             </div>
