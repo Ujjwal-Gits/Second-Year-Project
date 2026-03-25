@@ -21,8 +21,8 @@ const sendToken = (user, type, statusCode, res, message) => {
   const options = {
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
   };
   res
     .status(statusCode)
@@ -208,6 +208,8 @@ exports.logout = (req, res) => {
   res.cookie("hv_token", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+    secure: true,
+    sameSite: "none",
   });
   res.status(200).json({ message: "Logged out successfully" });
 };

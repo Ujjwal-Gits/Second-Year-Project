@@ -106,8 +106,8 @@ router.get("/google/callback", (req, res, next) => {
     res.cookie("hv_token", token, {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
     });
 
     res.redirect(`${process.env.CLIENT_URL}/`);
