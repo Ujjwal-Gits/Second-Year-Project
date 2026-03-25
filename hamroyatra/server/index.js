@@ -30,6 +30,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "https://hamroyatra.ujjwalrupakheti.com.np",
+      "https://second-year-project-kw9ta9y1r-ujjwal-gits-projects.vercel.app",
     ],
     credentials: true, // needed for cookies (JWT)
   }),
