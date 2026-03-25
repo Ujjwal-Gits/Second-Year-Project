@@ -39,6 +39,8 @@ import VerifiedPartners from "./pages/VerifiedPartners";
 import PlanPage from "./pages/PlanPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
+import SafetyAndTrust from "./pages/SafetyAndTrust";
+import ContactUs from "./pages/ContactUs";
 
 function App() {
   const [loading, setLoading] = useState(() => {
@@ -267,6 +269,8 @@ function App() {
             path="/terms-and-conditions"
             element={<TermsAndConditions />}
           />
+          <Route path="/safety-and-trust" element={<SafetyAndTrust />} />
+          <Route path="/contact" element={<ContactUs />} />
           <Route
             path="/plan"
             element={

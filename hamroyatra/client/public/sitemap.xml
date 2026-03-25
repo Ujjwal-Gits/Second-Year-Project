@@ -116,4 +116,20 @@
     <priority>0.3</priority>
   </url>
 
+  <!-- Safety and Trust -->
+  <url>
+    <loc>https://hamroyatra.ujjwalrupakheti.com.np/safety-and-trust</loc>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Contact Us -->
+  <url>
+    <loc>https://hamroyatra.ujjwalrupakheti.com.np/contact</loc>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
 </urlset>
