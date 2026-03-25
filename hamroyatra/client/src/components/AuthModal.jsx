@@ -286,7 +286,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="fixed inset-0 z-[10000] flex items-center justify-center sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center sm:p-4"
     >
       <style>{`
                 input:-webkit-autofill,
@@ -309,7 +309,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       <motion.div
         layout
         variants={portalVariants}
-        className={`relative w-full sm:max-w-[1000px] bg-white overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:h-[680px] h-full min-h-screen sm:min-h-0 pointer-events-auto sm:rounded-md`}
+        className={`relative w-full sm:max-w-[1000px] bg-white overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:h-[680px] pointer-events-auto sm:rounded-md`}
       >
         {/* Left Wing: Brand Axis — hidden on mobile */}
         <motion.div

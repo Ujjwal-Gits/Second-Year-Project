@@ -101,7 +101,7 @@ const Navbar = ({ onShowAuth, isAuthenticated, user, onLogout }) => {
 
   const handleProtectedAction = (e) => {
     if (!isAuthenticated) {
-      e.preventDefault();
+      if (e) e.preventDefault();
       onShowAuth();
     } else {
       navigate("/plan");
@@ -462,7 +462,7 @@ const Navbar = ({ onShowAuth, isAuthenticated, user, onLogout }) => {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-0 right-0 h-full w-[280px] xs:w-[320px] bg-white z-[200] shadow-2xl flex flex-col"
+            className="fixed top-0 right-0 h-full w-full sm:w-[320px] bg-white z-[200] shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-6 border-b border-gray-50">
