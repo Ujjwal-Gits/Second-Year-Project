@@ -165,7 +165,7 @@ const PartnerCard = ({ partner, index }) => {
 };
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-const VerifiedPartners = () => {
+const VerifiedPartners = ({ defaultFilter = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -174,13 +174,17 @@ const VerifiedPartners = () => {
 
   const queryParams = new URLSearchParams(location.search);
   const filterParam = queryParams.get("filter");
-  const activeFilter = ["trekking", "travel", "hotel"].includes(filterParam)
-    ? filterParam
-    : "all";
+  const activeFilter =
+    defaultFilter ||
+    (["trekking", "travel", "hotel"].includes(filterParam)
+      ? filterParam
+      : "all");
 
   const setFilter = (id) => {
     if (id === "all") navigate("/partners");
-    else navigate(`/partners?filter=${id}`);
+    else if (id === "hotel") navigate("/hotels-nepal");
+    else if (id === "trekking") navigate("/trekking-agencies-nepal");
+    else if (id === "travel") navigate("/travel-agencies-nepal");
   };
 
   useEffect(() => {
@@ -219,7 +223,7 @@ const VerifiedPartners = () => {
         "Find Nepal's best verified trekking agencies. All agencies are background-checked, licensed and reviewed by real trekkers.",
       keywords:
         "trekking agencies Nepal, best trekking company Nepal, verified trekking agency Nepal, Nepal trekking guide",
-      canonical: "/partners?filter=trekking",
+      canonical: "/trekking-agencies-nepal",
     },
     hotel: {
       title: "Best Verified Hotels in Nepal",
@@ -227,7 +231,7 @@ const VerifiedPartners = () => {
         "Discover Nepal's finest verified hotels and homestays. Handpicked, document-verified and rated by real guests on HamroYatra.",
       keywords:
         "best hotels Nepal, verified hotels Nepal, Nepal hotel stays, Nepal accommodation, hotels in Nepal",
-      canonical: "/partners?filter=hotel",
+      canonical: "/hotels-nepal",
     },
     travel: {
       title: "Verified Travel Agencies in Nepal",
@@ -235,7 +239,7 @@ const VerifiedPartners = () => {
         "Browse Nepal's top verified travel agencies. Curated tours, cultural experiences and adventure packages from certified operators.",
       keywords:
         "travel agencies Nepal, Nepal tour operator, verified travel company Nepal, Nepal travel agency",
-      canonical: "/partners?filter=travel",
+      canonical: "/travel-agencies-nepal",
     },
   };
 

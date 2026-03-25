@@ -198,6 +198,19 @@ function App() {
           ))}
 
           <Route path="/explore" element={<ExplorePage />} />
+          {/* Clean SEO URLs for explore filters */}
+          <Route
+            path="/trekking-packages"
+            element={<ExplorePage defaultFilter="trekking" />}
+          />
+          <Route
+            path="/hotel-stays"
+            element={<ExplorePage defaultFilter="hotel" />}
+          />
+          <Route
+            path="/travel-packages"
+            element={<ExplorePage defaultFilter="travel" />}
+          />
           <Route
             path="/explore/:id"
             element={
@@ -236,6 +249,19 @@ function App() {
             }
           />
           <Route path="/partners" element={<VerifiedPartners />} />
+          {/* Clean SEO URLs for partner filters */}
+          <Route
+            path="/hotels-nepal"
+            element={<VerifiedPartners defaultFilter="hotel" />}
+          />
+          <Route
+            path="/trekking-agencies-nepal"
+            element={<VerifiedPartners defaultFilter="trekking" />}
+          />
+          <Route
+            path="/travel-agencies-nepal"
+            element={<VerifiedPartners defaultFilter="travel" />}
+          />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route
             path="/terms-and-conditions"

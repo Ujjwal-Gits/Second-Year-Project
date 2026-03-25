@@ -15,7 +15,7 @@ function getSessionId() {
   return sid;
 }
 
-const ExplorePage = () => {
+const ExplorePage = ({ defaultFilter = null }) => {
   const location = useLocation();
 
   const [listings, setListings] = useState([]);
@@ -59,6 +59,10 @@ const ExplorePage = () => {
   const currentWord = HERO_WORD[type] || HERO_WORD["all"];
 
   useEffect(() => {
+    if (defaultFilter) {
+      setType(defaultFilter);
+      return;
+    }
     const queryParams = new URLSearchParams(location.search);
     const filterParam = queryParams.get("filter");
     if (filterParam && ["hotel", "trekking", "travel"].includes(filterParam)) {
@@ -66,7 +70,7 @@ const ExplorePage = () => {
     } else {
       setType("all");
     }
-  }, [location.search]);
+  }, [location.search, defaultFilter]);
 
   const fetchListings = async () => {
     try {
@@ -114,7 +118,7 @@ const ExplorePage = () => {
         "Browse verified hotels and homestays across Nepal. From Kathmandu luxury stays to mountain lodges — find and book your perfect stay.",
       keywords:
         "hotels in Nepal, Nepal hotel booking, best hotels Nepal, homestay Nepal, Nepal accommodation",
-      canonical: "/explore?filter=hotel",
+      canonical: "/hotel-stays",
     },
     trekking: {
       title: "Verified Trekking Packages in Nepal",
@@ -122,7 +126,7 @@ const ExplorePage = () => {
         "Find verified trekking packages in Nepal — Everest Base Camp, Annapurna Circuit, Langtang and more. Book with certified trekking agencies.",
       keywords:
         "trekking packages Nepal, Nepal trek booking, Everest Base Camp package, Annapurna trekking, Nepal hiking",
-      canonical: "/explore?filter=trekking",
+      canonical: "/trekking-packages",
     },
     travel: {
       title: "Nepal Travel Packages & Cultural Tours",
@@ -130,7 +134,7 @@ const ExplorePage = () => {
         "Explore curated travel packages and cultural tours across Nepal. Verified agencies, real reviews, easy booking.",
       keywords:
         "Nepal travel packages, Nepal tour packages, cultural tours Nepal, Nepal sightseeing",
-      canonical: "/explore?filter=travel",
+      canonical: "/travel-packages",
     },
   };
 
