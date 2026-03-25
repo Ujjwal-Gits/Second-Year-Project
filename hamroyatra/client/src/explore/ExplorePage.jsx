@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import ListingCard from "./ListingCard";
+import SEO from "../components/SEO";
 
 // ── Session ID: persisted in localStorage, works for guests too ──
 function getSessionId() {
@@ -98,11 +99,58 @@ const ExplorePage = () => {
     { id: "travel", label: "Travel", icon: "explore" },
   ];
 
+  const SEO_META = {
+    all: {
+      title: "Explore Trekking, Travel & Hotel Packages in Nepal",
+      description:
+        "Browse hundreds of verified trekking packages, travel tours and hotel stays across Nepal. Filter by type, price and location.",
+      keywords:
+        "Nepal travel packages, trekking packages Nepal, Nepal hotel stays, Nepal tour packages, Nepal adventure",
+      canonical: "/explore",
+    },
+    hotel: {
+      title: "Best Hotels & Homestays in Nepal",
+      description:
+        "Browse verified hotels and homestays across Nepal. From Kathmandu luxury stays to mountain lodges — find and book your perfect stay.",
+      keywords:
+        "hotels in Nepal, Nepal hotel booking, best hotels Nepal, homestay Nepal, Nepal accommodation",
+      canonical: "/explore?filter=hotel",
+    },
+    trekking: {
+      title: "Verified Trekking Packages in Nepal",
+      description:
+        "Find verified trekking packages in Nepal — Everest Base Camp, Annapurna Circuit, Langtang and more. Book with certified trekking agencies.",
+      keywords:
+        "trekking packages Nepal, Nepal trek booking, Everest Base Camp package, Annapurna trekking, Nepal hiking",
+      canonical: "/explore?filter=trekking",
+    },
+    travel: {
+      title: "Nepal Travel Packages & Cultural Tours",
+      description:
+        "Explore curated travel packages and cultural tours across Nepal. Verified agencies, real reviews, easy booking.",
+      keywords:
+        "Nepal travel packages, Nepal tour packages, cultural tours Nepal, Nepal sightseeing",
+      canonical: "/explore?filter=travel",
+    },
+  };
+
+  const currentMeta = SEO_META[type] || SEO_META.all;
+
   return (
     <>
-      {/* ══════════════════════════════════════════
-                HERO — Desktop: full mosaic | Mobile: minimal single image
-            ══════════════════════════════════════════ */}
+      <SEO
+        title={currentMeta.title}
+        description={currentMeta.description}
+        keywords={currentMeta.keywords}
+        canonical={currentMeta.canonical}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: currentMeta.title,
+          description: currentMeta.description,
+          url: `https://hamroyatra.ujjwalrupakheti.com.np${currentMeta.canonical}`,
+        }}
+      />
 
       {/* ── DESKTOP HERO (hidden on mobile) ── */}
       <section

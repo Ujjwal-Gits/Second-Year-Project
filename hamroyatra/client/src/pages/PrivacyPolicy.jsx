@@ -3,6 +3,7 @@
 
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import SEO from "../components/SEO";
 import HamroLogo from "../assets/HamroLogo.png";
 
 const Section = ({ title, children }) => (
@@ -23,7 +24,12 @@ const PrivacyPolicy = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F6F3] font-display">
-      {/* Header */}
+      <SEO
+        title="Privacy Policy"
+        description="Read HamroYatra's privacy policy — how we collect, use and protect your data on Nepal's verified travel platform."
+        canonical="/privacy-policy"
+        noIndex={false}
+      />
       <div className="bg-[#0D1F18] text-white py-16 px-8">
         <div className="max-w-4xl mx-auto">
           <Link to="/" className="flex items-center gap-3 mb-10 w-fit">

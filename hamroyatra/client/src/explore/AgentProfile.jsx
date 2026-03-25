@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { dashboardAPI } from "../dashboard/api";
+import SEO from "../components/SEO";
 
 const TABS = ["Listings", "Reviews", "About", "Guides"];
 
@@ -137,7 +138,9 @@ const AgentProfile = ({ isAuthenticated, user }) => {
   const fetchAgent = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/agent/${id}`);
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/agent/${id}`,
+      );
       setAgent(res.data);
       setFollowerCount(res.data.followers?.length || 0);
       if (isAuthenticated && user) {
@@ -287,6 +290,43 @@ const AgentProfile = ({ isAuthenticated, user }) => {
 
   return (
     <div className="min-h-screen bg-[#F7F6F3] font-display">
+      <SEO
+        title={`${agent.companyName || agent.fullName} | Verified Nepal Travel Partner`}
+        description={
+          agent.bio
+            ? agent.bio.slice(0, 155)
+            : `${agent.companyName || agent.fullName} is a verified travel partner on HamroYatra. Browse their listings, read reviews and get in touch.`
+        }
+        keywords={`${agent.companyName || agent.fullName} Nepal, ${(agent.serviceTypes || []).join(" agency Nepal, ")} agency Nepal, verified travel partner Nepal`}
+        canonical={`/agent/${agent.id}`}
+        ogImage={profileImg || undefined}
+        ogType="profile"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "TravelAgency",
+          name: agent.companyName || agent.fullName,
+          url: `https://hamroyatra.ujjwalrupakheti.com.np/agent/${agent.id}`,
+          description: agent.bio || `Verified travel partner on HamroYatra`,
+          image: profileImg,
+          address: {
+            "@type": "PostalAddress",
+            addressCountry: "NP",
+            addressLocality: agent.location || "Nepal",
+          },
+          telephone: agent.phoneNo,
+          aggregateRating:
+            agent.listings?.length > 0
+              ? {
+                  "@type": "AggregateRating",
+                  ratingValue: "4.5",
+                  reviewCount: agent.listings.reduce(
+                    (a, l) => a + (l.reviewCount || 0),
+                    0,
+                  ),
+                }
+              : undefined,
+        }}
+      />
       {/* COVER */}
       <div className="relative h-[320px] md:h-[420px] overflow-hidden">
         <img

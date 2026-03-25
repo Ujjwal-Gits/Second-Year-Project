@@ -15,6 +15,7 @@ import axios from "axios";
 
 // Components
 import Navbar from "./components/Navbar";
+import SEO from "./components/SEO";
 import Hero from "./components/Hero";
 import PartnerLogos from "./components/PartnerLogos";
 import TopDestinations from "./components/TopDestinations";
@@ -164,6 +165,26 @@ function App() {
               path={path}
               element={
                 <>
+                  <SEO
+                    title="Find Verified Travel Agencies & Hotels in Nepal"
+                    description="Discover Nepal's finest verified trekking agencies, travel companies and hotels. Compare, review and book your perfect Nepal adventure on HamroYatra."
+                    keywords="verified travel agency Nepal, trekking agencies Nepal, Nepal tour operator, Nepal hotel booking, Nepal trekking company, Nepal travel packages"
+                    canonical="/"
+                    schema={{
+                      "@context": "https://schema.org",
+                      "@type": "TravelAgency",
+                      name: "HamroYatra",
+                      url: "https://hamroyatra.ujjwalrupakheti.com.np",
+                      description:
+                        "Nepal's verified travel platform connecting travellers with certified trekking agencies, travel companies and hotels.",
+                      address: {
+                        "@type": "PostalAddress",
+                        addressCountry: "NP",
+                        addressLocality: "Kathmandu",
+                      },
+                      areaServed: "Nepal",
+                    }}
+                  />
                   <Hero />
                   <PartnerLogos />
                   <TopDestinations />

@@ -3,6 +3,7 @@
 
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import SEO from "../components/SEO";
 import HamroLogo from "../assets/HamroLogo.png";
 
 const Section = ({ title, children }) => (
@@ -23,6 +24,12 @@ const TermsAndConditions = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F6F3] font-display">
+      <SEO
+        title="Terms and Conditions"
+        description="Read HamroYatra's terms and conditions for using Nepal's verified travel platform."
+        canonical="/terms-and-conditions"
+        noIndex={false}
+      />
       {/* Header */}
       <div className="bg-[#0D1F18] text-white py-16 px-8">
         <div className="max-w-4xl mx-auto">

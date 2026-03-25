@@ -1,0 +1,35 @@
+User-agent: *
+Allow: /
+
+# Disallow private/dashboard routes
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /super-dashboard
+Disallow: /super-dashboard/
+Disallow: /login
+Disallow: /register
+Disallow: /register/
+
+# Allow all public pages
+Allow: /explore
+Allow: /explore/
+Allow: /partners
+Allow: /partners/
+Allow: /agent/
+Allow: /verification
+Allow: /plan
+Allow: /privacy-policy
+Allow: /terms-and-conditions
+Allow: /advertisement
+Allow: /partners?filter=hotel
+Allow: /partners?filter=trekking
+Allow: /partners?filter=travel
+Allow: /explore?filter=hotel
+Allow: /explore?filter=trekking
+Allow: /explore?filter=travel
+
+# Crawl delay — ask bots to be polite
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://hamroyatra.ujjwalrupakheti.com.np/sitemap.xml
