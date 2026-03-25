@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import SEO from "../components/SEO";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -244,6 +245,12 @@ export default function PlanPage({ user }) {
       className="fixed inset-0 bg-[#F0F4F1] flex flex-col"
       style={{ paddingTop: "100px" }}
     >
+      <SEO
+        title="AI Trip Planner for Nepal | Plan Your Perfect Trek or Tour"
+        description="Use HamroYatra's AI-powered trip planner to build your perfect Nepal itinerary. Get personalized recommendations for treks, hotels and tours."
+        keywords="Nepal trip planner, plan Nepal trek, Nepal itinerary planner, AI travel planner Nepal, Nepal travel guide AI"
+        canonical="/plan"
+      />
       {/* ── Card container ── */}
       <div className="flex-1 flex flex-col min-h-0 max-w-[1100px] w-full mx-auto px-4 pb-4">
         <div className="flex-1 flex flex-col min-h-0 bg-white rounded-2xl shadow-[0_4px_32px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden">
