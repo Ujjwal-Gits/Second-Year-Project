@@ -286,7 +286,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-4 overflow-y-auto"
     >
       <style>{`
                 input:-webkit-autofill,
@@ -309,14 +309,14 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       <motion.div
         layout
         variants={portalVariants}
-        className={`relative w-full max-w-[1000px] h-[680px] bg-white overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-row pointer-events-auto ${roundedClass}`}
+        className={`relative w-full max-w-[1000px] bg-white overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:h-[680px] pointer-events-auto ${roundedClass}`}
       >
-        {/* Left Wing: Brand Axis */}
+        {/* Left Wing: Brand Axis — hidden on mobile */}
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="bg-[#0F1612] w-[35%] h-full flex flex-col items-center justify-center shrink-0 border-r border-white/5 relative overflow-hidden"
+          className="hidden sm:flex bg-[#0F1612] w-[35%] h-full flex-col items-center justify-center shrink-0 border-r border-white/5 relative overflow-hidden"
         >
           {/* Subtle Breathing Aurora */}
           <motion.div
@@ -365,7 +365,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
         {/* Right Wing: Interaction Panel */}
         <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
           {/* Compact Header */}
-          <div className="px-12 pt-12 flex items-center justify-between z-20 shrink-0">
+          <div className="px-6 sm:px-12 pt-8 sm:pt-12 flex items-center justify-between z-20 shrink-0">
             <div className="space-y-1">
               <h3 className="text-3xl text-primary font-bold tracking-tight leading-none">
                 {mode === "login" ? "Welcome Back" : "Create Profile"}
@@ -387,7 +387,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
           </div>
 
           {/* Content Area: Compressed Proportions */}
-          <div className="flex-1 overflow-y-auto px-12 py-10 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-6 sm:py-10 custom-scrollbar">
             <AnimatePresence mode="wait">
               <motion.div
                 key={mode + role}
@@ -426,7 +426,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                     role === "agent" ? (
                       <div className="grid gap-4">
                         {/* Agent Matrix Logic */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <input
                             autoComplete="off"
                             type="text"
@@ -446,7 +446,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                             className={`w-full ${inputHeight} bg-white border border-gray-200 ${roundedClass} px-6 text-[14px] font-bold focus:ring-0 focus:border-[#C5A059] [&:not(:placeholder-shown)]:border-[#C5A059] transition-all placeholder:text-gray-300 text-primary outline-none`}
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <input
                             autoComplete="off"
                             type="text"
@@ -468,7 +468,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <input
                             autoComplete="new-password"
                             type="password"
@@ -500,7 +500,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                       </div>
                     ) : (
                       <div className="grid gap-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <input
                             autoComplete="off"
                             type="text"
@@ -520,7 +520,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                             className={`w-full ${inputHeight} bg-white border border-gray-200 ${roundedClass} px-6 text-[14px] font-bold focus:ring-0 focus:border-[#C5A059] [&:not(:placeholder-shown)]:border-[#C5A059] transition-all placeholder:text-gray-300 text-primary outline-none`}
                           />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <input
                             autoComplete="new-password"
                             type="password"
@@ -707,8 +707,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
 
                         <button
                           onClick={() => {
-                            window.location.href =
-                              `${import.meta.env.VITE_API_URL}/api/auth/google`;
+                            window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
                           }}
                           className={`w-full h-[50px] flex items-center justify-center gap-4 ${roundedClass} border border-gray-100 bg-white hover:bg-gray-50 transition-all active:scale-[0.98] group relative overflow-hidden shadow-sm`}
                         >
