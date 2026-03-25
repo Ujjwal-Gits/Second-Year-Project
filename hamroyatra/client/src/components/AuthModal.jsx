@@ -86,7 +86,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
     }
     setOtpSending(true);
     try {
-      await axios.post("import.meta.env.VITE_API_URL/api/auth/send-otp", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-otp`, {
         email: formData.email,
       });
       setOtpStep(true);
@@ -103,7 +103,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
     if (!otp || otp.length !== 6) return setError("Enter the 6-digit OTP");
     setIsLoading(true);
     try {
-      await axios.post("import.meta.env.VITE_API_URL/api/auth/verify-otp", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, {
         email: formData.email,
         otp,
       });
@@ -203,7 +203,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       }
 
       const response = await axios.post(
-        `import.meta.env.VITE_API_URL${endpoint}`,
+        `${import.meta.env.VITE_API_URL}${endpoint}`,
         payload,
         {
           withCredentials: true,
@@ -708,7 +708,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                         <button
                           onClick={() => {
                             window.location.href =
-                              "import.meta.env.VITE_API_URL/api/auth/google";
+                              `${import.meta.env.VITE_API_URL}/api/auth/google`;
                           }}
                           className={`w-full h-[50px] flex items-center justify-center gap-4 ${roundedClass} border border-gray-100 bg-white hover:bg-gray-50 transition-all active:scale-[0.98] group relative overflow-hidden shadow-sm`}
                         >

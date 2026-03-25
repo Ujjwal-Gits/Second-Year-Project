@@ -6,7 +6,7 @@ const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
 
-const BASE_URL = 'import.meta.env.VITE_API_URL/api';
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const TravellerCalendar = ({ user }) => {
     const today = new Date();

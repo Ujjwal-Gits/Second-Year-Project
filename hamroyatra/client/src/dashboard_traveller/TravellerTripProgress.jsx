@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const BASE_URL = 'import.meta.env.VITE_API_URL/api';
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const TravellerTripProgress = ({ user }) => {
     const { id } = useParams();

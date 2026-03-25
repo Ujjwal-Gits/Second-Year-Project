@@ -115,13 +115,13 @@ const SuperDashboard = ({ user, onLogout }) => {
     const fetchDashboardData = async () => {
         try {
             const [agentsRes, travellersRes, statsRes] = await Promise.all([
-                axios.get('import.meta.env.VITE_API_URL/api/dashboard/super/agents', {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/super/agents`, {
                     headers: { 'auth-token': localStorage.getItem('token') }
                 }),
-                axios.get('import.meta.env.VITE_API_URL/api/dashboard/super/travellers', {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/super/travellers`, {
                     headers: { 'auth-token': localStorage.getItem('token') }
                 }),
-                axios.get(`import.meta.env.VITE_API_URL/api/dashboard/super/stats?range=${timeRange}`, {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/super/stats?range=${timeRange}`, {
                     headers: { 'auth-token': localStorage.getItem('token') }
                 })
             ]);
@@ -143,7 +143,7 @@ const SuperDashboard = ({ user, onLogout }) => {
     const updateChartData = async () => {
         try {
             setChartLoading(true);
-            const statsRes = await axios.get(`import.meta.env.VITE_API_URL/api/dashboard/super/stats?range=${timeRange}`, {
+            const statsRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/dashboard/super/stats?range=${timeRange}`, {
                 headers: { 'auth-token': localStorage.getItem('token') }
             });
             setRevenueHistory(statsRes.data.revenueHistory);
@@ -156,7 +156,7 @@ const SuperDashboard = ({ user, onLogout }) => {
 
     const handleVerifyAgent = async (id, status, verified) => {
         try {
-            await axios.put(`import.meta.env.VITE_API_URL/api/dashboard/super/verify-agent/${id}`, { status, verified }, { withCredentials: true });
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/dashboard/super/verify-agent/${id}`, { status, verified }, { withCredentials: true });
             setSelectedAgent(null);
             fetchDashboardData();
         } catch (err) {
@@ -1559,12 +1559,12 @@ const SuperDashboard = ({ user, onLogout }) => {
                                             
                                             {/* Registration Certificate — A4 Style Concept */}
                                             <div 
-                                                onClick={() => setPreviewImage(selectedAgent.panImage?.startsWith('http') ? selectedAgent.panImage : `import.meta.env.VITE_API_URL${selectedAgent.panImage}`)}
+                                                onClick={() => setPreviewImage(selectedAgent.panImage?.startsWith('http') ? selectedAgent.panImage : `${import.meta.env.VITE_API_URL}${selectedAgent.panImage}`)}
                                                 className="group cursor-pointer bg-white p-4 lg:p-5 rounded-2xl border border-gray-100 hover:border-primary/30 transition-all flex items-center gap-4 lg:gap-5"
                                             >
                                                 <div className="w-12 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300 group-hover:bg-primary/5 group-hover:text-primary transition-all overflow-hidden border border-gray-200">
                                                     {selectedAgent.panImage ? (
-                                                        <img src={selectedAgent.panImage.startsWith('http') ? selectedAgent.panImage : `import.meta.env.VITE_API_URL${selectedAgent.panImage}`} className="w-full h-full object-cover" alt="PAN" />
+                                                        <img src={selectedAgent.panImage.startsWith('http') ? selectedAgent.panImage : `${import.meta.env.VITE_API_URL}${selectedAgent.panImage}`} className="w-full h-full object-cover" alt="PAN" />
                                                     ) : (
                                                         <span className="material-icons">article</span>
                                                     )}
@@ -1578,12 +1578,12 @@ const SuperDashboard = ({ user, onLogout }) => {
 
                                             {/* Unified Citizenship Node */}
                                             <div 
-                                                onClick={() => setPreviewImage(selectedAgent.citizenshipImage?.startsWith('http') ? selectedAgent.citizenshipImage : `import.meta.env.VITE_API_URL${selectedAgent.citizenshipImage}`)}
+                                                onClick={() => setPreviewImage(selectedAgent.citizenshipImage?.startsWith('http') ? selectedAgent.citizenshipImage : `${import.meta.env.VITE_API_URL}${selectedAgent.citizenshipImage}`)}
                                                 className="group cursor-pointer bg-white p-5 rounded-2xl border border-gray-100 hover:border-primary/30 transition-all flex items-center gap-5"
                                             >
                                                 <div className="w-12 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300 group-hover:bg-primary/5 group-hover:text-primary transition-all overflow-hidden border border-gray-200">
                                                     {selectedAgent.citizenshipImage ? (
-                                                        <img src={selectedAgent.citizenshipImage.startsWith('http') ? selectedAgent.citizenshipImage : `import.meta.env.VITE_API_URL${selectedAgent.citizenshipImage}`} className="w-full h-full object-cover" alt="Citizenship" />
+                                                        <img src={selectedAgent.citizenshipImage.startsWith('http') ? selectedAgent.citizenshipImage : `${import.meta.env.VITE_API_URL}${selectedAgent.citizenshipImage}`} className="w-full h-full object-cover" alt="Citizenship" />
                                                     ) : (
                                                         <span className="material-icons">badge</span>
                                                     )}
@@ -1637,7 +1637,7 @@ const SuperDashboard = ({ user, onLogout }) => {
             <AnimatePresence>
                 {previewImage && (() => {
                     const [zoomLevel, setZoomLevel] = React.useState(1);
-                    const isCitizenshipPreview = previewImage === (selectedAgent.citizenshipImage?.startsWith('http') ? selectedAgent.citizenshipImage : `import.meta.env.VITE_API_URL${selectedAgent.citizenshipImage}`);
+                    const isCitizenshipPreview = previewImage === (selectedAgent.citizenshipImage?.startsWith('http') ? selectedAgent.citizenshipImage : `${import.meta.env.VITE_API_URL}${selectedAgent.citizenshipImage}`);
 
                     const handleWheel = React.useCallback((e) => {
                         e.preventDefault();
@@ -1676,7 +1676,7 @@ const SuperDashboard = ({ user, onLogout }) => {
                                     <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="flex flex-col items-center justify-center flex-1 w-full max-h-[45%] lg:max-h-full">
                                         <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-3">Back Side</p>
                                         <img
-                                            src={selectedAgent.citizenshipBackImage ? (selectedAgent.citizenshipBackImage.startsWith('http') ? selectedAgent.citizenshipBackImage : `import.meta.env.VITE_API_URL${selectedAgent.citizenshipBackImage}`) : previewImage}
+                                            src={selectedAgent.citizenshipBackImage ? (selectedAgent.citizenshipBackImage.startsWith('http') ? selectedAgent.citizenshipBackImage : `${import.meta.env.VITE_API_URL}${selectedAgent.citizenshipBackImage}`) : previewImage}
                                             style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center center', transition: 'transform 0.1s ease-out' }}
                                             className="max-w-full max-h-[90%] lg:max-h-[60vh] object-contain rounded-xl shadow-2xl shadow-black/50"
                                             alt="Back"

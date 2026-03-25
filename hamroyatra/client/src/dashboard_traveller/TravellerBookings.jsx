@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 
 const ROOM_OPTIONS = ["AC", "Non-AC", "Family", "Couple"];
-const BASE_URL = "import.meta.env.VITE_API_URL/api";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 // Modal Component Portaled to root body to fix the blur issue and stacking context
 const ModalPortal = ({ children, onClose }) => {

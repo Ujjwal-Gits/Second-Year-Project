@@ -21,7 +21,7 @@ const PartnerCard = ({ partner, index }) => {
   const profileImg = partner.profileImage
     ? partner.profileImage.startsWith("http")
       ? partner.profileImage
-      : `import.meta.env.VITE_API_URL${partner.profileImage}`
+      : `${import.meta.env.VITE_API_URL}${partner.profileImage}`
     : null;
 
   const initials = (partner.companyName || partner.fullName || "?")
@@ -49,7 +49,7 @@ const PartnerCard = ({ partner, index }) => {
             src={
               partner.coverImage.startsWith("http")
                 ? partner.coverImage
-                : `import.meta.env.VITE_API_URL${partner.coverImage}`
+                : `${import.meta.env.VITE_API_URL}${partner.coverImage}`
             }
             alt=""
             className="absolute inset-0 w-full h-full object-cover opacity-40"
@@ -184,7 +184,7 @@ const VerifiedPartners = () => {
 
   useEffect(() => {
     axios
-      .get("import.meta.env.VITE_API_URL/api/public/agents/verified")
+      .get(`${import.meta.env.VITE_API_URL}/api/public/agents/verified`)
       .then((res) => setPartners(res.data))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));

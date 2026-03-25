@@ -28,7 +28,7 @@ const ListingCard = ({ listing }) => {
   const trackView = () => {
     axios
       .post(
-        `import.meta.env.VITE_API_URL/api/public/listings/${id}/view`,
+        `${import.meta.env.VITE_API_URL}/api/public/listings/${id}/view`,
         { sessionId: getSessionId() },
         { withCredentials: true },
       )
@@ -42,7 +42,7 @@ const ListingCard = ({ listing }) => {
   const image = images?.[0]
     ? images[0].startsWith("http")
       ? images[0]
-      : `import.meta.env.VITE_API_URL${images[0]}`
+      : `${import.meta.env.VITE_API_URL}${images[0]}`
     : "https://images.unsplash.com/photo-1544735749-2e78311e09f1?q=80&w=1470&auto=format&fit=crop";
 
   const durationDays = listing.duration || 1;

@@ -108,7 +108,7 @@ const VerificationProcess = ({ isAuthenticated, user }) => {
 
         try {
             setLoading(true);
-            const res = await axios.post('import.meta.env.VITE_API_URL/api/dashboard/upload', uploadData, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/dashboard/upload`, uploadData, {
                 withCredentials: true,
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -136,11 +136,11 @@ const VerificationProcess = ({ isAuthenticated, user }) => {
             };
 
             if (isUpgrade) {
-                await axios.put('import.meta.env.VITE_API_URL/api/dashboard/profile', payload, { withCredentials: true });
+                await axios.put(`${import.meta.env.VITE_API_URL}/api/dashboard/profile`, payload, { withCredentials: true });
                 setSuccess(true);
                 setTimeout(() => navigate('/dashboard'), 3000);
             } else {
-                const res = await axios.post('import.meta.env.VITE_API_URL/api/auth/register/agent', payload);
+                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register/agent`, payload);
                 if (res.status === 201) {
                     setSuccess(true);
                     setTimeout(() => navigate('/login'), 3000);

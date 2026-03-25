@@ -237,12 +237,12 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
         const fetchDetail = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get(`import.meta.env.VITE_API_URL/api/public/listings/${id}`);
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/listings/${id}`);
                 setData(res.data);
                 // Fetch reviews for this listing's company
                 if (res.data?.listing?.companyName) {
                     try {
-                        const reviewRes = await axios.get(`import.meta.env.VITE_API_URL/api/public/reviews?companyName=${encodeURIComponent(res.data.listing.companyName)}&listingId=${id}`);
+                        const reviewRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/reviews?companyName=${encodeURIComponent(res.data.listing.companyName)}&listingId=${id}`);
                         setReviews(reviewRes.data || []);
                     } catch (e) {
                         setReviews([]);
@@ -332,7 +332,7 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
                 notes: bookingForm.notes || ''
             };
 
-            await axios.post('import.meta.env.VITE_API_URL/api/dashboard/bookings', payload, { withCredentials: true });
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/dashboard/bookings`, payload, { withCredentials: true });
             setBookingStatus({ type: 'success', msg: 'Reservation submitted! The operator will confirm shortly.' });
         } catch (err) {
             console.error('Booking failed:', err.response?.data || err.message);
@@ -347,7 +347,7 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
             return;
         }
         try {
-            await axios.post('import.meta.env.VITE_API_URL/api/dashboard/public/message', {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/dashboard/public/message`, {
                 ...messageForm,
                 companyName: data.listing.companyName,
                 subject: `Inquiry: ${data.listing.title}`,
@@ -371,7 +371,7 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
             return;
         }
         try {
-            await axios.post('import.meta.env.VITE_API_URL/api/dashboard/public/review', {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/dashboard/public/review`, {
                 ...reviewForm,
                 companyName: data.listing.companyName,
                 serviceType: data.listing.type,
@@ -383,7 +383,7 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
             setHoverRating(0);
             // Refresh reviews
             try {
-                const reviewRes = await axios.get(`import.meta.env.VITE_API_URL/api/public/reviews?companyName=${encodeURIComponent(data.listing.companyName)}&listingId=${id}`);
+                const reviewRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/public/reviews?companyName=${encodeURIComponent(data.listing.companyName)}&listingId=${id}`);
                 setReviews(reviewRes.data || []);
             } catch (e) {}
         } catch (err) {
@@ -418,7 +418,7 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
 
     const { listing, company } = data;
     const images = listing.images?.length > 0
-        ? listing.images.map(img => img.startsWith('http') ? img : `import.meta.env.VITE_API_URL${img}`)
+        ? listing.images.map(img => img.startsWith('http') ? img : `${import.meta.env.VITE_API_URL}${img}`)
         : ['https://images.unsplash.com/photo-1544735749-2e78311e09f1?q=80&w=1470&auto=format&fit=crop'];
 
     const durationDays = listing.duration || 1;

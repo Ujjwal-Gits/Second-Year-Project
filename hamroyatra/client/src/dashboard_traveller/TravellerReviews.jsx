@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const BASE_URL = 'import.meta.env.VITE_API_URL/api';
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 const TravellerReviews = ({ user }) => {
     const [reviews, setReviews] = useState([]);

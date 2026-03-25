@@ -75,7 +75,7 @@ const ExplorePage = () => {
       if (type !== "all") params.append("type", type);
       params.append("sessionId", sessionId.current);
       const response = await axios.get(
-        `import.meta.env.VITE_API_URL/api/public/listings?${params.toString()}`,
+        `${import.meta.env.VITE_API_URL}/api/public/listings?${params.toString()}`,
         { withCredentials: true },
       );
       setListings(response.data);
