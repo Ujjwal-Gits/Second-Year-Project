@@ -286,7 +286,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="fixed inset-0 z-[10000] flex items-start sm:items-center justify-center sm:p-4"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
     >
       <style>{`
                 input:-webkit-autofill,
@@ -309,7 +309,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       <motion.div
         layout
         variants={portalVariants}
-        className={`relative w-full sm:max-w-[1000px] bg-white overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:h-[680px] pointer-events-auto sm:rounded-md`}
+        className={`relative w-full sm:max-w-[1000px] bg-white overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row sm:h-[680px] max-h-[90vh] pointer-events-auto rounded-xl`}
       >
         {/* Left Wing: Brand Axis — hidden on mobile */}
         <motion.div
@@ -364,23 +364,8 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
 
         {/* Right Wing: Interaction Panel */}
         <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
-          {/* Mobile-only top bar with logo */}
-          <div className="sm:hidden flex items-center gap-2 px-6 pt-6 pb-2 border-b border-gray-50">
-            <img
-              src={HamroLogo}
-              alt="Hamroyatra"
-              className="w-7 h-7 object-contain"
-              style={{
-                filter:
-                  "invert(27%) sepia(51%) saturate(500%) hue-rotate(100deg)",
-              }}
-            />
-            <span className="text-primary font-black text-sm tracking-widest uppercase">
-              Hamroyatra
-            </span>
-          </div>
           {/* Compact Header */}
-          <div className="px-6 sm:px-12 pt-5 sm:pt-12 flex items-center justify-between z-20 shrink-0">
+          <div className="px-6 sm:px-12 pt-6 sm:pt-12 flex items-center justify-between z-20 shrink-0">
             <div className="space-y-1">
               <h3 className="text-3xl text-primary font-bold tracking-tight leading-none">
                 {mode === "login" ? "Welcome Back" : "Create Profile"}

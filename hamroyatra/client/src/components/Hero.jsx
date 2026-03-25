@@ -70,7 +70,7 @@ const Hero = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 pt-24 md:pt-32 pb-32">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 pt-24 md:pt-32 pb-16 md:pb-32">
         {/* Headline - Reduced Size as requested */}
         <h1 className="text-white text-3xl md:text-6xl lg:text-7xl font-sans font-medium tracking-tight uppercase mb-12 drop-shadow-2xl opacity-95 w-full">
           Amazing Mountain <br />
