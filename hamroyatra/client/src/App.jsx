@@ -114,7 +114,7 @@ function App() {
 
   return (
     <div
-      className={`bg-background-light dark:bg-background-dark font-display text-gray-800 antialiased selection:bg-primary selection:text-white ${isFullDashboard || !showScroll ? "h-screen overflow-hidden" : ""}`}
+      className={`bg-background-light dark:bg-background-dark font-display text-gray-800 antialiased selection:bg-primary selection:text-white overflow-x-hidden max-w-[100vw] ${isFullDashboard || !showScroll ? "h-screen overflow-hidden" : ""}`}
     >
       <ScrollToTop />
       <AnimatePresence>
