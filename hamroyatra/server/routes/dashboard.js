@@ -304,17 +304,27 @@ router.get("/bookings/calendar", authMiddleware, async (req, res) => {
   try {
     const { year, month } = req.query;
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    res.json(
-      await prisma.booking.findMany({
-        where: {
-          agentId: effectiveId,
-          startDate: {
-            gte: new Date(year, month - 1, 1),
-            lte: new Date(year, month, 0),
-          },
+    const bookings = await prisma.booking.findMany({
+      where: {
+        agentId: effectiveId,
+        startDate: {
+          gte: new Date(year, month - 1, 1),
+          lte: new Date(year, month, 0),
         },
-        orderBy: { startDate: "asc" },
-      }),
+      },
+      orderBy: { startDate: "asc" },
+    });
+    // normalize startDate to YYYY-MM-DD string for frontend date comparison
+    res.json(
+      bookings.map((b) => ({
+        ...b,
+        startDate: b.startDate
+          ? new Date(b.startDate).toISOString().split("T")[0]
+          : null,
+        endDate: b.endDate
+          ? new Date(b.endDate).toISOString().split("T")[0]
+          : null,
+      })),
     );
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1284,10 +1294,15 @@ router.post("/traveller/messages", authMiddleware, async (req, res) => {
     const traveller = await prisma.hamroTraveller.findUnique({
       where: { id: req.user.id },
     });
+
+    // look up the agent by companyName so we can set agentId
+    const agent = await prisma.hamroAgent.findFirst({ where: { companyName } });
+
     const newMessage = await prisma.message.create({
       data: {
         companyName,
         travellerId: req.user.id,
+        agentId: agent?.id || null,
         customerName: traveller.fullName,
         customerEmail: traveller.email,
         subject: subject || "Direct Message",
