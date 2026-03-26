@@ -278,36 +278,35 @@ const Testimonials = () => {
             </div>
           </motion.div>
 
-          {/* 9. MID-RIGHT: Anish - Homestay in Nepal */}
+          {/* 9. MID-RIGHT: Binisha - Homestay in Nepal */}
           <motion.div
             custom={6}
             variants={cardVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: false, amount: 0.2 }}
-            className="absolute top-[52%] mt-[20px] right-[7%] z-20 flex items-center gap-4"
+            className="absolute top-[52%] mt-[20px] right-[7%] z-20 w-[200px]"
           >
-            <div className="w-20 h-20 rounded-full border-4 border-[#C5A059] overflow-hidden shadow-lg bg-white shrink-0">
-              <img
-                src={BinishaImg}
-                alt="Binisha"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="bg-white rounded-[2rem] p-6 pr-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-gray-100 relative after:content-[''] after:absolute after:top-1/2 after:right-full after:border-[12px] after:border-transparent after:border-r-white after:-translate-y-1/2 min-w-[240px]">
-              <h4 className="text-[#1A2B23] font-bold text-base mb-1">
-                Best Place to Book Homestay in Nepal
-              </h4>
-              <p className="text-gray-400 text-[10px] leading-relaxed mb-4">
-                I have booked homestay in from HamroYatra, got best service.
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#1A2B23]/70 uppercase tracking-widest leading-none">
-                  @binisha
-                </span>
-                <div className="bg-[#1A2B23] text-[#C5A059] text-[9px] font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                  <span className="material-icons text-[10px]">star</span> 4.5
+            <div className="bg-white rounded-[2rem] border-[2px] border-[#C5A059] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.06)] flex flex-col">
+              <div className="flex justify-center pt-5">
+                <div className="w-16 h-16 rounded-full border-4 border-[#C5A059] overflow-hidden shadow-lg bg-white">
+                  <img
+                    src={BinishaImg}
+                    alt="Binisha"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
+              </div>
+              <div className="pt-3 pb-5 px-4 text-center">
+                <p className="text-gray-500 text-[9px] leading-relaxed italic mb-3">
+                  "Booked homestay through HamroYatra, got the best service."
+                </p>
+                <h4 className="text-[#1A2B23] font-black text-[10px] uppercase tracking-tighter">
+                  Binisha
+                </h4>
+                <p className="text-[#C5A059] font-bold text-[8px] mt-0.5">
+                  @binisha
+                </p>
               </div>
             </div>
           </motion.div>
