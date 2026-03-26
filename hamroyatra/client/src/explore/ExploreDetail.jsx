@@ -509,9 +509,10 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
         `${import.meta.env.VITE_API_URL}/api/dashboard/public/message`,
         {
           ...messageForm,
-          companyName: data.listing.companyName,
+          companyName: company?.companyName || data.listing.companyName,
           subject: `Inquiry: ${data.listing.title}`,
           travellerId: user.id,
+          agentId: company?.id || data.listing.agentId,
         },
         { withCredentials: true },
       );

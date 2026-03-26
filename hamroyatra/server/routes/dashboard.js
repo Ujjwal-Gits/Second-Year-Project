@@ -1168,23 +1168,46 @@ router.post("/public/message", async (req, res) => {
       subject,
       message,
       travellerId,
+      agentId,
     } = req.body;
-    // look up agentId by companyName so agent inbox can find it
-    const agent = await prisma.hamroAgent.findFirst({ where: { companyName } });
+    // use provided agentId, or look up by companyName as fallback
+    let resolvedAgentId = agentId || null;
+    if (!resolvedAgentId && companyName) {
+      const agent = await prisma.hamroAgent.findFirst({
+        where: { companyName },
+      });
+      resolvedAgentId = agent?.id || null;
+    }
+    // use agent's actual companyName if we found them
+    let resolvedCompanyName = companyName;
+    if (resolvedAgentId && !agentId) {
+      const agent = await prisma.hamroAgent.findUnique({
+        where: { id: resolvedAgentId },
+        select: { companyName: true },
+      });
+      if (agent?.companyName) resolvedCompanyName = agent.companyName;
+    } else if (agentId) {
+      const agent = await prisma.hamroAgent.findUnique({
+        where: { id: agentId },
+        select: { companyName: true },
+      });
+      if (agent?.companyName) resolvedCompanyName = agent.companyName;
+      resolvedAgentId = agentId;
+    }
     const newMessage = await prisma.message.create({
       data: {
-        companyName,
+        companyName: resolvedCompanyName,
         customerName,
         customerEmail,
         subject,
         message,
         travellerId: travellerId || null,
-        agentId: agent?.id || null,
+        agentId: resolvedAgentId,
         senderRole: "traveller",
       },
     });
     await createNotification(
-      companyName,
+      resolvedCompanyName,
       "message",
       "New Customer Inquiry",
       `${customerName} sent a new message regarding "${subject || "No Subject"}".`,
@@ -1315,13 +1338,11 @@ router.post("/traveller/messages", authMiddleware, async (req, res) => {
     const traveller = await prisma.hamroTraveller.findUnique({
       where: { id: req.user.id },
     });
-
-    // look up the agent by companyName so we can set agentId
     const agent = await prisma.hamroAgent.findFirst({ where: { companyName } });
-
+    const resolvedCompanyName = agent?.companyName || companyName;
     const newMessage = await prisma.message.create({
       data: {
-        companyName,
+        companyName: resolvedCompanyName,
         travellerId: req.user.id,
         agentId: agent?.id || null,
         customerName: traveller.fullName,
@@ -1332,7 +1353,7 @@ router.post("/traveller/messages", authMiddleware, async (req, res) => {
       },
     });
     await createNotification(
-      companyName,
+      resolvedCompanyName,
       "message",
       "New Message from Traveller",
       `${traveller.fullName} sent a message.`,
