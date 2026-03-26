@@ -8,7 +8,12 @@ const { Resend } = require("resend");
 // In-memory OTP store: key = email, value = { otp, expiresAt, verified }
 const otpStore = new Map();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize lazily so missing env var doesn't crash on startup
+let resendClient = null;
+const getResend = () => {
+  if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY);
+  return resendClient;
+};
 
 // Generate a cryptographically secure 6-digit OTP
 const generateOTP = () => {
@@ -38,7 +43,7 @@ const sendOTP = async (email, purpose = "registration") => {
         ? `Your HamroYatra password reset OTP is:`
         : `Your HamroYatra registration OTP is:`;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: "onboarding@resend.dev",
     to: email,
     subject,
