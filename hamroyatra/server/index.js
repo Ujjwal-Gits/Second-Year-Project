@@ -50,6 +50,23 @@ app.get("/", (req, res) =>
   res.json({ message: "Hamroyatra API is running", status: "OK" }),
 );
 
+// debug — remove after checking
+app.get("/api/debug/agents", async (req, res) => {
+  const prisma = require("./config/prisma");
+  const agents = await prisma.hamroAgent.findMany({
+    select: {
+      id: true,
+      email: true,
+      companyName: true,
+      verified: true,
+      verificationStatus: true,
+      serviceTypes: true,
+      parentAgentId: true,
+    },
+  });
+  res.json(agents);
+});
+
 // one-time demo seed — POST so it only runs when deliberately called
 // call: POST https://second-year-project-heoc.onrender.com/api/seed-demo
 app.post("/api/seed-demo", async (req, res) => {
