@@ -50,6 +50,19 @@ app.get("/", (req, res) =>
   res.json({ message: "Hamroyatra API is running", status: "OK" }),
 );
 
+// one-time fix — remove after running
+app.get("/api/fix-agent-data", async (req, res) => {
+  const prisma = require("./config/prisma");
+  try {
+    // use raw SQL to find agents with null serviceTypes since Prisma can't filter Json null
+    await prisma.$executeRaw`UPDATE "HamroAgents" SET "serviceTypes" = '["trekking","travel"]'::jsonb WHERE "serviceTypes" IS NULL`;
+    await prisma.$executeRaw`UPDATE "HamroAgents" SET "verificationStatus" = 'verified' WHERE verified = true AND "verificationStatus" != 'verified'`;
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: `Endpoint not found: ${req.url}` });
 });
