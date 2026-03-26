@@ -44,7 +44,7 @@ const sendOTP = async (email, purpose = "registration") => {
         : `Your HamroYatra registration OTP is:`;
 
   const { error } = await getResend().emails.send({
-    from: "onboarding@resend.dev",
+    from: "HamroYatra <noreply@ujjwalrupakheti.com.np>",
     to: email,
     subject,
     html: `
