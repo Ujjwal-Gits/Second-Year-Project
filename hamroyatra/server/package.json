@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx prisma generate",
-    "postinstall": "npx prisma generate",
+    "postinstall": "npx prisma generate && npx prisma db push --accept-data-loss",
     "start": "node index.js"
   },
   "dependencies": {
