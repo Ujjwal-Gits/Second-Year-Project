@@ -104,7 +104,11 @@ const logTravellerActivity = async (req, action, details, targetId = null) => {
 // ─── UPLOAD ───────────────────────────────────────────────────────────────────
 router.post("/upload", authMiddleware, upload.single("image"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  res.json({ url: `http://localhost:5000/uploads/${req.file.filename}` });
+  const baseUrl =
+    process.env.NODE_ENV === "production"
+      ? "https://second-year-project-heoc.onrender.com"
+      : "http://localhost:5000";
+  res.json({ url: `${baseUrl}/uploads/${req.file.filename}` });
 });
 
 // ─── LISTINGS ─────────────────────────────────────────────────────────────────
