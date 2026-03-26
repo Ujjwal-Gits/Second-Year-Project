@@ -7,11 +7,7 @@ const path = require("path");
 const bcrypt = require("bcryptjs");
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
-});
+const storage = multer.memoryStorage(); // keep in memory, send to Cloudinary
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
@@ -23,6 +19,23 @@ const upload = multer({
       : cb(new Error("Only .png, .jpg and .jpeg format allowed!"));
   },
 });
+
+// Cloudinary config
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const uploadToCloudinary = (buffer) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "hamroyatra", type: "authenticated", resource_type: "image" },
+      (err, result) => (err ? reject(err) : resolve(result)),
+    );
+    stream.end(buffer);
+  });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const createNotification = async (
@@ -102,14 +115,20 @@ const logTravellerActivity = async (req, action, details, targetId = null) => {
 };
 
 // ─── UPLOAD ───────────────────────────────────────────────────────────────────
-router.post("/upload", authMiddleware, upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  const baseUrl =
-    process.env.NODE_ENV === "production"
-      ? "https://second-year-project-heoc.onrender.com"
-      : "http://localhost:5000";
-  res.json({ url: `${baseUrl}/uploads/${req.file.filename}` });
-});
+router.post(
+  "/upload",
+  authMiddleware,
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+      const result = await uploadToCloudinary(req.file.buffer);
+      res.json({ url: result.secure_url });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
 
 // ─── LISTINGS ─────────────────────────────────────────────────────────────────
 router.get("/listings", authMiddleware, async (req, res) => {
