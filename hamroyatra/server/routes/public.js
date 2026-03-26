@@ -459,7 +459,6 @@ router.get("/agents/verified", optionalAuth, async (req, res) => {
         (a.serviceTypes || []).includes(serviceType),
       );
     }
-
     const [sessionSignal, preference] = await Promise.all([
       sessionId ? buildSessionSignal(sessionId, req.user?.id) : null,
       req.user

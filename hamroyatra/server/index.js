@@ -67,6 +67,29 @@ app.get("/api/debug/agents", async (req, res) => {
   res.json(agents);
 });
 
+// one-time fix: patch bad agent data
+app.get("/api/fix-agent-data", async (req, res) => {
+  const prisma = require("./config/prisma");
+  try {
+    const nullServiceAgents = await prisma.hamroAgent.findMany({
+      where: { serviceTypes: null },
+    });
+    for (const a of nullServiceAgents) {
+      await prisma.hamroAgent.update({
+        where: { id: a.id },
+        data: { serviceTypes: ["trekking", "travel"] },
+      });
+    }
+    await prisma.hamroAgent.updateMany({
+      where: { verified: true, verificationStatus: { not: "verified" } },
+      data: { verificationStatus: "verified" },
+    });
+    res.json({ ok: true, fixedServiceTypes: nullServiceAgents.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // one-time demo seed — POST so it only runs when deliberately called
 // call: POST https://second-year-project-heoc.onrender.com/api/seed-demo
 app.post("/api/seed-demo", async (req, res) => {
