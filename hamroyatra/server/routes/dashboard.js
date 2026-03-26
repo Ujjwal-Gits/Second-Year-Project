@@ -1,52 +1,30 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
-const HamroAgent = require("../models/Agent");
-const Guide = require("../models/Guide");
-const Listing = require("../models/Listing");
-const Booking = require("../models/Booking");
-const ActivityLog = require("../models/ActivityLog");
-const Review = require("../models/Review");
-const Notification = require("../models/Notification");
-const Message = require("../models/Message");
-const { sequelize } = require("../config/db");
-const { Op, QueryTypes } = require("sequelize");
+const prisma = require("../config/prisma");
 const multer = require("multer");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 
-// Define association (safe to call multiple times — Sequelize deduplicates)
-if (!Booking.associations.listing) {
-  Booking.belongsTo(Listing, { foreignKey: "listingId", as: "listing" });
-}
-
-// Multer Storage Configuration
+// ─── Multer ───────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`);
-  },
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) =>
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
 });
-
 const upload = multer({
-  storage: storage,
+  storage,
   fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png/;
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase(),
-    );
-    const mimetype = filetypes.test(file.mimetype);
-    if (mimetype && extname) return cb(null, true);
-    cb(new Error("Only .png, .jpg and .jpeg format allowed!"));
+    const ok =
+      /jpeg|jpg|png/.test(path.extname(file.originalname).toLowerCase()) &&
+      /jpeg|jpg|png/.test(file.mimetype);
+    ok
+      ? cb(null, true)
+      : cb(new Error("Only .png, .jpg and .jpeg format allowed!"));
   },
 });
 
-// Note: Models are synced in index.js or via migrations in a real app
-// To avoid nodemon restart loops and ensure stability, we don't sync here.
-
-// Helper to create notifications
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const createNotification = async (
   companyName,
   type,
@@ -57,115 +35,103 @@ const createNotification = async (
   agentId = null,
 ) => {
   try {
-    await Notification.create({
-      companyName,
-      type,
-      title,
-      message,
-      targetId,
-      travellerId,
-      agentId,
+    await prisma.notification.create({
+      data: {
+        companyName,
+        type,
+        title,
+        message,
+        targetId,
+        travellerId,
+        agentId,
+      },
     });
   } catch (err) {
     console.error("Notification Creation Failed:", err);
   }
 };
 
-router.get("/traveller/notifications", authMiddleware, async (req, res) => {
-  try {
-    const notifications = await Notification.findAll({
-      where: { travellerId: req.user.id },
-      order: [["createdAt", "DESC"]],
-      limit: 20,
-    });
-    res.json(notifications);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Resolves the "owner" agent ID for sub-agents.
-// If the logged-in agent has a parentAgentId, all data belongs to the parent.
+// if the agent is a sub-agent, all data belongs to the parent
 const getEffectiveAgentId = async (userId) => {
-  const agent = await HamroAgent.findByPk(userId, {
-    attributes: ["id", "parentAgentId"],
+  const agent = await prisma.hamroAgent.findUnique({
+    where: { id: userId },
+    select: { id: true, parentAgentId: true },
   });
-  return agent && agent.parentAgentId ? agent.parentAgentId : userId;
+  return agent?.parentAgentId || userId;
 };
 
-// Helper to log activities (for Agents)
 const logActivity = async (req, action, details, targetId = null) => {
   try {
     if (req.user.role !== "agent") return;
-    const agent = await HamroAgent.findByPk(req.user.id);
-    await ActivityLog.create({
-      agentId: req.user.id,
-      agentName: agent.fullName,
-      companyName: agent.companyName,
-      action,
-      details,
-      targetId,
+    const agent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
+    await prisma.activityLog.create({
+      data: {
+        agentId: req.user.id,
+        agentName: agent.fullName,
+        companyName: agent.companyName,
+        action,
+        details,
+        targetId,
+      },
     });
   } catch (err) {
     console.error("Activity Logging Failed:", err);
   }
 };
 
-// Helper to log activities (for Travellers)
 const logTravellerActivity = async (req, action, details, targetId = null) => {
   try {
     if (req.user.role !== "traveller") return;
-    const Traveller = require("../models/Traveller");
-    const traveller = await Traveller.findByPk(req.user.id);
-    await ActivityLog.create({
-      travellerId: req.user.id,
-      travellerName: traveller.fullName,
-      action,
-      details,
-      targetId,
+    const traveller = await prisma.hamroTraveller.findUnique({
+      where: { id: req.user.id },
+    });
+    await prisma.activityLog.create({
+      data: {
+        travellerId: req.user.id,
+        travellerName: traveller.fullName,
+        action,
+        details,
+        targetId,
+      },
     });
   } catch (err) {
     console.error("Traveller Activity Logging Failed:", err);
   }
 };
 
-// ─── UPLOADS ─────────────────────────────────────────────
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
 router.post("/upload", authMiddleware, upload.single("image"), (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    const url = `http://localhost:5000/uploads/${req.file.filename}`;
-    res.json({ url });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  res.json({ url: `http://localhost:5000/uploads/${req.file.filename}` });
 });
 
-// ─── LISTINGS ─────────────────────────────────────────────
-
-// Get all listings for the agent
+// ─── LISTINGS ─────────────────────────────────────────────────────────────────
 router.get("/listings", authMiddleware, async (req, res) => {
   try {
     if (req.user.role === "superadmin") {
-      const listings = await Listing.findAll({
-        order: [["createdAt", "DESC"]],
-      });
-      return res.json(listings);
+      return res.json(
+        await prisma.listing.findMany({ orderBy: { createdAt: "desc" } }),
+      );
     }
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const listings = await Listing.findAll({
-      where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(listings);
+    res.json(
+      await prisma.listing.findMany({
+        where: { agentId: effectiveId },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Create listing
 router.post("/listings", authMiddleware, async (req, res) => {
   try {
-    const currentAgent = await HamroAgent.findByPk(req.user.id);
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
     const {
       title,
       description,
@@ -186,27 +152,29 @@ router.post("/listings", authMiddleware, async (req, res) => {
       familyPrice,
       couplePrice,
     } = req.body;
-    const listing = await Listing.create({
-      agentId: req.user.id,
-      companyName: currentAgent.companyName,
-      title,
-      description,
-      type,
-      price,
-      offers,
-      duration: type === "hotel" ? 1 : parseInt(duration) || 1,
-      images: images || [],
-      acRooms: acRooms || 0,
-      nonAcRooms: nonAcRooms || 0,
-      familyRooms: familyRooms || 0,
-      coupleRooms: coupleRooms || 0,
-      acPrice: acPrice || 0,
-      nonAcPrice: nonAcPrice || 0,
-      familyPrice: familyPrice || 0,
-      couplePrice: couplePrice || 0,
-      amenities: amenities || [],
-      itinerary: itinerary || [],
-      hotelCategory: type === "hotel" ? hotelCategory || "hotel" : "hotel",
+    const listing = await prisma.listing.create({
+      data: {
+        agentId: req.user.id,
+        companyName: currentAgent.companyName,
+        title,
+        description,
+        type,
+        price,
+        offers,
+        duration: type === "hotel" ? 1 : parseInt(duration) || 1,
+        images: images || [],
+        acRooms: acRooms || 0,
+        nonAcRooms: nonAcRooms || 0,
+        familyRooms: familyRooms || 0,
+        coupleRooms: coupleRooms || 0,
+        acPrice: acPrice || 0,
+        nonAcPrice: nonAcPrice || 0,
+        familyPrice: familyPrice || 0,
+        couplePrice: couplePrice || 0,
+        amenities: amenities || [],
+        itinerary: itinerary || [],
+        hotelCategory: type === "hotel" ? hotelCategory || "hotel" : "hotel",
+      },
     });
     await logActivity(
       req,
@@ -220,27 +188,23 @@ router.post("/listings", authMiddleware, async (req, res) => {
   }
 });
 
-// Update listing
 router.put("/listings/:id", authMiddleware, async (req, res) => {
   try {
-    console.log(`[UPDATE_LISTING] Attempting to update ID: ${req.params.id}`);
-    let whereClause = { id: req.params.id };
-
+    const where = { id: req.params.id };
     if (req.user.role !== "superadmin") {
       const effectiveId = await getEffectiveAgentId(req.user.id);
-      whereClause.agentId = effectiveId;
+      where.agentId = effectiveId;
     }
-
-    const listing = await Listing.findOne({ where: whereClause });
-
-    if (!listing) {
+    const existing = await prisma.listing.findFirst({ where });
+    if (!existing)
       return res
         .status(404)
         .json({ error: "Listing not found or unauthorized" });
-    }
-
     const { id, agentId, companyName, ...updateData } = req.body;
-    await listing.update(updateData);
+    const listing = await prisma.listing.update({
+      where: { id: req.params.id },
+      data: updateData,
+    });
     await logActivity(
       req,
       "UPDATE_LISTING",
@@ -253,109 +217,106 @@ router.put("/listings/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// Delete listing
 router.delete("/listings/:id", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const listing = await Listing.findOne({
+    const listing = await prisma.listing.findFirst({
       where: { id: req.params.id, agentId: effectiveId },
     });
     if (!listing)
       return res
         .status(404)
         .json({ error: "Listing not found or unauthorized" });
-    const title = listing.title;
-    await listing.destroy();
-    await logActivity(req, "DELETE_LISTING", `Deleted listing: "${title}"`);
+    await prisma.listing.delete({ where: { id: req.params.id } });
+    await logActivity(
+      req,
+      "DELETE_LISTING",
+      `Deleted listing: "${listing.title}"`,
+    );
     res.json({ message: "Listing deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── BOOKINGS ─────────────────────────────────────────────
-
-// Get all bookings for agent
+// ─── BOOKINGS ─────────────────────────────────────────────────────────────────
 router.get("/bookings", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const bookings = await Booking.findAll({
-      where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(bookings);
+    res.json(
+      await prisma.booking.findMany({
+        where: { agentId: effectiveId },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get bookings for logged in traveller
 router.get("/traveller/bookings", authMiddleware, async (req, res) => {
   try {
-    const bookings = await Booking.findAll({
+    const bookings = await prisma.booking.findMany({
       where: { travellerId: req.user.id },
-      include: [
-        {
-          model: Listing,
-          as: "listing",
-          attributes: ["title", "price", "duration"],
-          required: false,
-        },
-      ],
-      order: [["createdAt", "DESC"]],
+      include: {
+        listing: { select: { title: true, price: true, duration: true } },
+      },
+      orderBy: { createdAt: "desc" },
     });
-    // Flatten listing price/duration into each booking object for the frontend
-    const result = bookings.map((b) => {
-      const obj = b.toJSON();
-      obj.title = obj.listing ? obj.listing.title : null;
-      obj.listingPrice = obj.listing ? parseFloat(obj.listing.price) : null;
-      obj.listingDuration = obj.listing ? obj.listing.duration : null;
-      delete obj.listing;
-      return obj;
-    });
-    res.json(result);
+    res.json(
+      bookings.map((b) => ({
+        ...b,
+        title: b.listing?.title || null,
+        listingPrice: b.listing ? parseFloat(b.listing.price) : null,
+        listingDuration: b.listing?.duration || null,
+        listing: undefined,
+      })),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get bookings for a specific date range (calendar view)
 router.get("/bookings/calendar", authMiddleware, async (req, res) => {
   try {
     const { year, month } = req.query;
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 0);
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const bookings = await Booking.findAll({
-      where: {
-        agentId: effectiveId,
-        startDate: { [Op.between]: [startOfMonth, endOfMonth] },
-      },
-      order: [["startDate", "ASC"]],
-    });
-    res.json(bookings);
+    res.json(
+      await prisma.booking.findMany({
+        where: {
+          agentId: effectiveId,
+          startDate: {
+            gte: new Date(year, month - 1, 1),
+            lte: new Date(year, month, 0),
+          },
+        },
+        orderBy: { startDate: "asc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Create booking
 router.post("/bookings", authMiddleware, async (req, res) => {
   try {
     const { bookingType, listingId } = req.body;
-    let finalAgentId = null;
-    let finalCompanyName = null;
-    let finalStatus = "confirmed";
+    let finalAgentId = null,
+      finalCompanyName = null,
+      finalStatus = "confirmed";
 
     if (req.user.role === "agent") {
-      const currentAgent = await HamroAgent.findByPk(req.user.id);
+      const currentAgent = await prisma.hamroAgent.findUnique({
+        where: { id: req.user.id },
+      });
       if (!currentAgent)
         return res.status(404).json({ error: "Agent profile not found" });
       finalAgentId = req.user.id;
       finalCompanyName = currentAgent.companyName;
     } else {
-      // Traveller booking from public explore page
-      const listing = await Listing.findByPk(listingId);
+      const listing = await prisma.listing.findUnique({
+        where: { id: listingId },
+      });
       if (!listing)
         return res.status(404).json({ error: "Listing not found for booking" });
       finalAgentId = listing.agentId;
@@ -363,35 +324,36 @@ router.post("/bookings", authMiddleware, async (req, res) => {
       finalStatus = "pending";
     }
 
-    // Generate Serial ID (HO01, GD01, PG01...)
-    const prefix =
-      bookingType === "room" ? "HO" : bookingType === "guide" ? "GD" : "PG";
-    const count = await Booking.count({
+    const count = await prisma.booking.count({
       where: { bookingType, companyName: finalCompanyName },
     });
+    const prefix =
+      bookingType === "room" ? "HO" : bookingType === "guide" ? "GD" : "PG";
     const serialId = `${prefix}${String(count + 1).padStart(2, "0")}`;
 
-    const booking = await Booking.create({
-      listingId: req.body.listingId || null,
-      bookingType: req.body.bookingType,
-      startDate: req.body.startDate,
-      endDate: req.body.endDate || null,
-      totalAmount: req.body.totalAmount || 0,
-      roomCount: req.body.roomCount || 1,
-      roomSelection: req.body.roomSelection || {},
-      guestName: req.body.guestName || "Guest",
-      guestEmail: req.body.guestEmail || null,
-      guestPhone: req.body.guestPhone || null,
-      notes: req.body.notes || null,
-      agentId: finalAgentId,
-      travellerId:
-        req.user.role === "traveller"
-          ? req.user.id
-          : req.body.travellerId || null,
-      companyName: finalCompanyName,
-      status: finalStatus,
-      createdBy: req.user.role === "traveller" ? "traveller" : "agent",
-      serialId,
+    const booking = await prisma.booking.create({
+      data: {
+        listingId: req.body.listingId || null,
+        bookingType: req.body.bookingType,
+        startDate: new Date(req.body.startDate),
+        endDate: req.body.endDate ? new Date(req.body.endDate) : null,
+        totalAmount: req.body.totalAmount || 0,
+        roomCount: req.body.roomCount || 1,
+        roomSelection: req.body.roomSelection || {},
+        guestName: req.body.guestName || "Guest",
+        guestEmail: req.body.guestEmail || null,
+        guestPhone: req.body.guestPhone || null,
+        notes: req.body.notes || null,
+        agentId: finalAgentId,
+        travellerId:
+          req.user.role === "traveller"
+            ? req.user.id
+            : req.body.travellerId || null,
+        companyName: finalCompanyName,
+        status: finalStatus,
+        createdBy: req.user.role === "traveller" ? "traveller" : "agent",
+        serialId,
+      },
     });
 
     if (req.user.role === "agent") {
@@ -410,7 +372,6 @@ router.post("/bookings", authMiddleware, async (req, res) => {
       );
     }
 
-    // Trigger Notification for the Agent/Company
     await createNotification(
       finalCompanyName,
       "booking",
@@ -428,62 +389,51 @@ router.post("/bookings", authMiddleware, async (req, res) => {
   }
 });
 
-// Start a trip (initialize checklist from listing itinerary)
-// NOTE: Must be defined BEFORE PUT /bookings/:id to avoid route shadowing
 router.put("/bookings/:id/start-trip", authMiddleware, async (req, res) => {
   try {
-    const booking = await Booking.findOne({
+    const booking = await prisma.booking.findFirst({
       where: { id: req.params.id, travellerId: req.user.id },
-      include: [{ model: Listing, as: "listing", attributes: ["itinerary"] }],
+      include: { listing: { select: { itinerary: true } } },
     });
     if (!booking) return res.status(404).json({ error: "Booking not found" });
-    const currentTripStatus = booking.tripStatus || "pending";
-    if (currentTripStatus !== "pending")
+    if (booking.tripStatus !== "pending")
       return res
         .status(400)
         .json({ error: "Trip already started or completed" });
 
-    // Initialize checklist from listing itinerary
-    let checklist = [];
-    if (booking.listing && booking.listing.itinerary) {
-      checklist = booking.listing.itinerary.map((day, idx) => ({
-        id: idx,
-        title: day.title || `Day ${idx + 1}`,
-        location: day.location || "",
-        completed: false,
-        review: "",
-        reviewEdited: false,
-        completedAt: null,
-      }));
-    }
+    const checklist = (booking.listing?.itinerary || []).map((day, idx) => ({
+      id: idx,
+      title: day.title || `Day ${idx + 1}`,
+      location: day.location || "",
+      completed: false,
+      review: "",
+      reviewEdited: false,
+      completedAt: null,
+    }));
 
-    await booking.update({
-      tripStatus: "active",
-      checklist: checklist,
+    const updated = await prisma.booking.update({
+      where: { id: req.params.id },
+      data: { tripStatus: "active", checklist },
     });
-
-    res.json({ message: "Trip started successfully", booking });
+    res.json({ message: "Trip started successfully", booking: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update checklist item
-// NOTE: Must be defined BEFORE PUT /bookings/:id to avoid route shadowing
 router.put(
   "/bookings/:id/checklist/update",
   authMiddleware,
   async (req, res) => {
     try {
       const { itemId, completed, review } = req.body;
-      const booking = await Booking.findOne({
+      const booking = await prisma.booking.findFirst({
         where: { id: req.params.id, travellerId: req.user.id },
       });
       if (!booking) return res.status(404).json({ error: "Booking not found" });
 
       const checklist = [...(booking.checklist || [])];
       const index = checklist.findIndex((item) => item.id == itemId);
-
       if (index === -1)
         return res.status(404).json({ error: "Checklist item not found" });
 
@@ -500,35 +450,27 @@ router.put(
             : checklist[index].completedAt,
       };
 
-      await booking.update({ checklist });
-      res.json({ message: "Progress updated", booking });
+      const updated = await prisma.booking.update({
+        where: { id: req.params.id },
+        data: { checklist },
+      });
+      res.json({ message: "Progress updated", booking: updated });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   },
 );
 
-// Update booking
 router.put("/bookings/:id", authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const where =
+      req.user.role === "agent"
+        ? { id: req.params.id, agentId: await getEffectiveAgentId(req.user.id) }
+        : { id: req.params.id, travellerId: req.user.id };
 
-    let booking;
-    if (userRole === "agent") {
-      const effectiveId = await getEffectiveAgentId(userId);
-      booking = await Booking.findOne({
-        where: { id: req.params.id, agentId: effectiveId },
-      });
-    } else {
-      booking = await Booking.findOne({
-        where: { id: req.params.id, travellerId: userId },
-      });
-    }
-
+    const booking = await prisma.booking.findFirst({ where });
     if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-    // Explicit whitelist — only allow known safe fields to be updated
     const ALLOWED = [
       "status",
       "paymentStatus",
@@ -549,18 +491,21 @@ router.put("/bookings/:id", authMiddleware, async (req, res) => {
       "otherIdType",
       "bookingType",
     ];
-
     const update = {};
     ALLOWED.forEach((key) => {
       if (req.body[key] !== undefined) update[key] = req.body[key];
     });
+    if (update.startDate) update.startDate = new Date(update.startDate);
+    if (update.endDate) update.endDate = new Date(update.endDate);
 
     const oldStatus = booking.status;
-    await booking.update(update);
+    const updated = await prisma.booking.update({
+      where: { id: req.params.id },
+      data: update,
+    });
 
-    // If status changed by agent, notify the traveller
     if (
-      userRole === "agent" &&
+      req.user.role === "agent" &&
       update.status &&
       update.status !== oldStatus &&
       booking.travellerId
@@ -574,30 +519,27 @@ router.put("/bookings/:id", authMiddleware, async (req, res) => {
         booking.travellerId,
       );
     }
-
-    res.json(booking);
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete booking
 router.delete("/bookings/:id", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const booking = await Booking.findOne({
+    const booking = await prisma.booking.findFirst({
       where: { id: req.params.id, agentId: effectiveId },
     });
     if (!booking)
       return res
         .status(404)
         .json({ error: "Booking not found or unauthorized" });
-    const guest = booking.guestName;
-    await booking.destroy();
+    await prisma.booking.delete({ where: { id: req.params.id } });
     await logActivity(
       req,
       "DELETE_BOOKING",
-      `Deleted booking record for "${guest}"`,
+      `Deleted booking record for "${booking.guestName}"`,
     );
     res.json({ message: "Booking deleted successfully" });
   } catch (err) {
@@ -605,60 +547,45 @@ router.delete("/bookings/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// ─── TEAM MANAGEMENT ─────────────────────────────────────
-
-// Get all team members (Agents & Guides) for the company
+// ─── TEAM ─────────────────────────────────────────────────────────────────────
 router.get("/team", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const currentAgent = await HamroAgent.findByPk(effectiveId);
-    if (!currentAgent)
-      return res.status(404).json({ error: "Agent profile not found" });
-
-    // Fetch all agents that belong to this company (owner + all sub-agents)
-    const agents = await HamroAgent.findAll({
-      where: {
-        [Op.or]: [{ id: effectiveId }, { parentAgentId: effectiveId }],
-      },
-      attributes: { exclude: ["password"] },
+    const agents = await prisma.hamroAgent.findMany({
+      where: { OR: [{ id: effectiveId }, { parentAgentId: effectiveId }] },
+      omit: { password: true },
     });
-
-    // Guides are linked to the owner agent
-    const guides = await Guide.findAll({
+    const guides = await prisma.guide.findMany({
       where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
+      orderBy: { createdAt: "desc" },
     });
-
     res.json({ agents, guides });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Add a new Agent to the team
 router.post("/team/agent/send-otp", authMiddleware, async (req, res) => {
-  // Sends OTP to the CURRENT (requesting) agent's email to confirm they authorized this action
   try {
-    const currentAgent = await HamroAgent.findByPk(req.user.id);
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
     if (!currentAgent)
       return res.status(404).json({ error: "Agent not found" });
-
     const { sendOTP } = require("../services/otpService");
     await sendOTP(currentAgent.email, "team-invite");
     res.json({ message: `OTP sent to ${currentAgent.email}` });
   } catch (err) {
-    console.error("Team OTP Error:", err);
     res.status(500).json({ error: "Failed to send OTP" });
   }
 });
 
-// Add a new Agent to the team
 router.post("/team/agent", authMiddleware, async (req, res) => {
   try {
     const { fullName, email, password, phoneNo, otp } = req.body;
-    const currentAgent = await HamroAgent.findByPk(req.user.id);
-
-    // Verify the requesting agent confirmed with OTP
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
     const { verifyOTP, clearOTP } = require("../services/otpService");
     const otpCheck = verifyOTP(currentAgent.email, otp);
     if (!otpCheck.valid)
@@ -666,34 +593,30 @@ router.post("/team/agent", authMiddleware, async (req, res) => {
         .status(403)
         .json({ error: `OTP check failed: ${otpCheck.reason}` });
 
-    // Verify email uniqueness across all users
-    const existingAgent = await HamroAgent.findOne({ where: { email } });
-    if (existingAgent)
+    const existing = await prisma.hamroAgent.findUnique({ where: { email } });
+    if (existing)
       return res.status(400).json({ error: "Email already in use" });
 
     const hashedPassword = await bcrypt.hash(password, 12);
-
     const effectiveParentId = currentAgent.parentAgentId || currentAgent.id;
-
-    const newAgent = await HamroAgent.create({
-      fullName,
-      email,
-      password: hashedPassword,
-      phoneNo,
-      companyName: currentAgent.companyName,
-      role: "agent",
-      parentAgentId: effectiveParentId,
+    const newAgent = await prisma.hamroAgent.create({
+      data: {
+        fullName,
+        email,
+        password: hashedPassword,
+        phoneNo,
+        companyName: currentAgent.companyName,
+        role: "agent",
+        parentAgentId: effectiveParentId,
+      },
     });
-
-    clearOTP(currentAgent.email); // Consume OTP
-
+    clearOTP(currentAgent.email);
     await logActivity(
       req,
       "ADD_AGENT",
       `Enrolled new team agent: ${fullName} (${email})`,
       newAgent.id,
     );
-
     res.status(201).json({
       message: "Team Agent created",
       agent: {
@@ -709,29 +632,23 @@ router.post("/team/agent", authMiddleware, async (req, res) => {
 
 router.delete("/team/agent/:id", authMiddleware, async (req, res) => {
   try {
-    if (req.params.id === req.user.id) {
-      return res.status(400).json({
-        error:
-          "Self-deletion is not permitted. Please contact administration for account closure.",
-      });
-    }
-
-    const currentAgent = await HamroAgent.findByPk(req.user.id);
-    const targetAgent = await HamroAgent.findOne({
+    if (req.params.id === req.user.id)
+      return res.status(400).json({ error: "Self-deletion is not permitted." });
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
+    const targetAgent = await prisma.hamroAgent.findFirst({
       where: { id: req.params.id, companyName: currentAgent.companyName },
     });
-
     if (!targetAgent)
       return res
         .status(404)
         .json({ error: "Agent not found in your organization" });
-
-    const name = targetAgent.fullName;
-    await targetAgent.destroy();
+    await prisma.hamroAgent.delete({ where: { id: req.params.id } });
     await logActivity(
       req,
       "DELETE_AGENT",
-      `Removed agent "${name}" from company`,
+      `Removed agent "${targetAgent.fullName}" from company`,
     );
     res.json({ message: "Agent removed from company" });
   } catch (err) {
@@ -739,33 +656,34 @@ router.delete("/team/agent/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// Update an existing Agent
 router.put("/team/agent/:id", authMiddleware, async (req, res) => {
   try {
     const { fullName, email, phoneNo } = req.body;
-    const agent = await HamroAgent.findByPk(req.params.id);
+    const agent = await prisma.hamroAgent.findUnique({
+      where: { id: req.params.id },
+    });
     if (!agent) return res.status(404).json({ error: "Agent not found" });
-
-    // Ensure they belong to the same company
-    const currentAgent = await HamroAgent.findByPk(req.user.id);
-    if (agent.companyName !== currentAgent.companyName) {
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
+    if (agent.companyName !== currentAgent.companyName)
       return res.status(403).json({ error: "Unauthorized company mismatch" });
-    }
-
-    await agent.update({ fullName, email, phoneNo });
+    const updated = await prisma.hamroAgent.update({
+      where: { id: req.params.id },
+      data: { fullName, email, phoneNo },
+    });
     await logActivity(
       req,
       "UPDATE_TEAM",
       `Updated credentials for agent: ${fullName}`,
       agent.id,
     );
-    res.json({ message: "Agent updated successfully", agent });
+    res.json({ message: "Agent updated successfully", agent: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Add a new Guide to the team
 router.post("/team/guide", authMiddleware, async (req, res) => {
   try {
     const {
@@ -777,34 +695,33 @@ router.post("/team/guide", authMiddleware, async (req, res) => {
       certificateImage,
       certificateExpiry,
     } = req.body;
-    const currentAgent = await HamroAgent.findByPk(req.user.id);
-
-    if (!currentAgent.verified) {
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+    });
+    if (!currentAgent.verified)
       return res.status(403).json({
         error:
-          'Badge Verification Required. Only verified agencies with a "PRO" badge can register and display professional guides on their profile. Please complete your partner verification first.',
+          "Badge Verification Required. Only verified agencies can register guides.",
       });
-    }
-
-    const newGuide = await Guide.create({
-      fullName,
-      email,
-      phoneNo,
-      experienceYears,
-      profileImage,
-      certificateImage,
-      certificateExpiry,
-      agentId: req.user.id,
-      companyName: currentAgent.companyName,
+    const newGuide = await prisma.guide.create({
+      data: {
+        fullName,
+        email,
+        phoneNo,
+        experienceYears,
+        profileImage,
+        certificateImage,
+        certificateExpiry: new Date(certificateExpiry),
+        agentId: req.user.id,
+        companyName: currentAgent.companyName,
+      },
     });
-
     await logActivity(
       req,
       "ADD_GUIDE",
       `Registered new field guide: ${fullName}`,
       newGuide.id,
     );
-
     res
       .status(201)
       .json({ message: "Guide registered successfully", guide: newGuide });
@@ -815,16 +732,15 @@ router.post("/team/guide", authMiddleware, async (req, res) => {
 
 router.delete("/team/guide/:id", authMiddleware, async (req, res) => {
   try {
-    const guide = await Guide.findOne({
+    const guide = await prisma.guide.findFirst({
       where: { id: req.params.id, agentId: req.user.id },
     });
     if (!guide) return res.status(404).json({ error: "Guide not found" });
-    const name = guide.fullName;
-    await guide.destroy();
+    await prisma.guide.delete({ where: { id: req.params.id } });
     await logActivity(
       req,
       "DELETE_GUIDE",
-      `Removed guide "${name}" from company`,
+      `Removed guide "${guide.fullName}" from company`,
     );
     res.json({ message: "Guide removed" });
   } catch (err) {
@@ -832,29 +748,29 @@ router.delete("/team/guide/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// Update an existing Guide
 router.put("/team/guide/:id", authMiddleware, async (req, res) => {
   try {
-    const guide = await Guide.findOne({
+    const guide = await prisma.guide.findFirst({
       where: { id: req.params.id, agentId: req.user.id },
     });
     if (!guide) return res.status(404).json({ error: "Guide not found" });
-
-    await guide.update(req.body);
+    const updated = await prisma.guide.update({
+      where: { id: req.params.id },
+      data: req.body,
+    });
     await logActivity(
       req,
       "UPDATE_GUIDE",
       `Updated field profile for guide: ${req.body.fullName}`,
       guide.id,
     );
-    res.json({ message: "Guide updated successfully", guide });
+    res.json({ message: "Guide updated successfully", guide: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── ANALYTICS ─────────────────────────────────────────────
-
+// ─── ANALYTICS ────────────────────────────────────────────────────────────────
 router.get("/analytics", authMiddleware, async (req, res) => {
   try {
     const agentId = await getEffectiveAgentId(req.user.id);
@@ -862,61 +778,71 @@ router.get("/analytics", authMiddleware, async (req, res) => {
     const threeMonthsAgo = new Date(now);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-    // Total revenue (3 months - Daily)
-    const revenueResult = await Booking.findAll({
-      where: {
-        agentId,
-        status: { [Op.ne]: "cancelled" },
-        createdAt: { [Op.gte]: threeMonthsAgo },
-      },
-      attributes: [
-        [sequelize.fn("date_trunc", "day", sequelize.col("createdAt")), "day"],
-        [sequelize.fn("SUM", sequelize.col("totalAmount")), "revenue"],
-        [sequelize.fn("COUNT", sequelize.col("id")), "count"],
-      ],
-      group: [sequelize.fn("date_trunc", "day", sequelize.col("createdAt"))],
-      order: [
-        [sequelize.fn("date_trunc", "day", sequelize.col("createdAt")), "ASC"],
-      ],
-    });
+    const [
+      allBookings,
+      totalBookings,
+      totalRevenue,
+      thisMonthRevenue,
+      recentBookings,
+    ] = await Promise.all([
+      prisma.booking.findMany({
+        where: {
+          agentId,
+          status: { not: "cancelled" },
+          createdAt: { gte: threeMonthsAgo },
+        },
+      }),
+      prisma.booking.count({ where: { agentId } }),
+      prisma.booking.aggregate({
+        where: { agentId, status: { not: "cancelled" } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.booking.aggregate({
+        where: {
+          agentId,
+          status: { not: "cancelled" },
+          createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) },
+        },
+        _sum: { totalAmount: true },
+      }),
+      prisma.booking.findMany({
+        where: { agentId },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      }),
+    ]);
 
-    // Total bookings by type
-    const bookingsByType = await Booking.findAll({
-      where: { agentId, createdAt: { [Op.gte]: threeMonthsAgo } },
-      attributes: [
-        "bookingType",
-        [sequelize.fn("COUNT", sequelize.col("id")), "count"],
-        [sequelize.fn("SUM", sequelize.col("totalAmount")), "revenue"],
-      ],
-      group: ["bookingType"],
+    // Daily revenue
+    const dailyMap = {};
+    allBookings.forEach((b) => {
+      const day = b.createdAt.toISOString().split("T")[0];
+      dailyMap[day] = {
+        revenue: (dailyMap[day]?.revenue || 0) + parseFloat(b.totalAmount || 0),
+        count: (dailyMap[day]?.count || 0) + 1,
+      };
     });
+    const revenueDaily = Object.entries(dailyMap)
+      .map(([day, v]) => ({ day, ...v }))
+      .sort((a, b) => a.day.localeCompare(b.day));
 
-    // Total stats
-    const totalBookings = await Booking.count({ where: { agentId } });
-    const totalRevenue = await Booking.sum("totalAmount", {
-      where: { agentId, status: { [Op.ne]: "cancelled" } },
-    });
-    const thisMonthRevenue = await Booking.sum("totalAmount", {
-      where: {
-        agentId,
-        status: { [Op.ne]: "cancelled" },
-        createdAt: { [Op.gte]: new Date(now.getFullYear(), now.getMonth(), 1) },
-      },
-    });
-
-    // Recent bookings
-    const recentBookings = await Booking.findAll({
-      where: { agentId },
-      order: [["createdAt", "DESC"]],
-      limit: 8,
+    // Bookings by type
+    const typeMap = {};
+    allBookings.forEach((b) => {
+      typeMap[b.bookingType] = typeMap[b.bookingType] || {
+        bookingType: b.bookingType,
+        count: 0,
+        revenue: 0,
+      };
+      typeMap[b.bookingType].count++;
+      typeMap[b.bookingType].revenue += parseFloat(b.totalAmount || 0);
     });
 
     res.json({
-      revenueDaily: revenueResult,
-      bookingsByType,
+      revenueDaily,
+      bookingsByType: Object.values(typeMap),
       totalBookings,
-      totalRevenue: totalRevenue || 0,
-      thisMonthRevenue: thisMonthRevenue || 0,
+      totalRevenue: parseFloat(totalRevenue._sum.totalAmount || 0),
+      thisMonthRevenue: parseFloat(thisMonthRevenue._sum.totalAmount || 0),
       recentBookings,
     });
   } catch (err) {
@@ -924,28 +850,24 @@ router.get("/analytics", authMiddleware, async (req, res) => {
   }
 });
 
-// ─── CUSTOMERS ─────────────────────────────────────────────
-
+// ─── CUSTOMERS ────────────────────────────────────────────────────────────────
 router.get("/customers", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const bookings = await Booking.findAll({
+    const bookings = await prisma.booking.findMany({
       where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
+      orderBy: { createdAt: "desc" },
     });
-
     const customersMap = new Map();
-
     for (const b of bookings) {
       const key = `${b.guestName.toLowerCase()}-${(b.guestEmail || "").toLowerCase()}`;
-      if (!customersMap.has(key)) {
+      if (!customersMap.has(key))
         customersMap.set(key, {
           name: b.guestName,
           email: b.guestEmail,
           phone: b.guestPhone,
           bookings: [],
         });
-      }
       customersMap.get(key).bookings.push({
         id: b.id,
         type: b.bookingType,
@@ -954,59 +876,46 @@ router.get("/customers", authMiddleware, async (req, res) => {
         status: b.status,
       });
     }
-
     res.json(Array.from(customersMap.values()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── HISTORY ─────────────────────────────────────────────
-
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
 router.get("/history", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const history = await ActivityLog.findAll({
-      where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
-      limit: 50,
-    });
-    res.json(history);
+    res.json(
+      await prisma.activityLog.findMany({
+        where: { agentId: effectiveId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── REVIEWS ─────────────────────────────────────────────
-
+// ─── REVIEWS ──────────────────────────────────────────────────────────────────
 router.get("/reviews", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const agentListings = await Listing.findAll({
-      where: { agentId: effectiveId },
-      attributes: ["companyName"],
+    const agent = await prisma.hamroAgent.findUnique({
+      where: { id: effectiveId },
     });
-    const companyNames = [
-      ...new Set(agentListings.map((l) => l.companyName).filter(Boolean)),
-    ];
-    const agent = await HamroAgent.findByPk(effectiveId);
-    if (agent.companyName && !companyNames.includes(agent.companyName))
-      companyNames.push(agent.companyName);
-    const reviews = await Review.findAll({
-      where: {
-        companyName: {
-          [Op.in]: companyNames.length ? companyNames : ["__none__"],
-        },
-      },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(reviews);
+    res.json(
+      await prisma.review.findMany({
+        where: { companyName: agent.companyName },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Mock Public Review Submission (No auth for demo)
 router.post("/public/review", async (req, res) => {
   try {
     const {
@@ -1017,17 +926,17 @@ router.post("/public/review", async (req, res) => {
       serviceType,
       listingId,
     } = req.body;
-    const review = await Review.create({
-      companyName,
-      customerName,
-      rating,
-      message,
-      serviceType,
-      listingId,
-      status: "pending",
+    const review = await prisma.review.create({
+      data: {
+        companyName,
+        customerName,
+        rating,
+        message,
+        serviceType,
+        listingId,
+        status: "pending",
+      },
     });
-
-    // Trigger Notification
     await createNotification(
       companyName,
       "review",
@@ -1035,24 +944,37 @@ router.post("/public/review", async (req, res) => {
       `${customerName} gave a ${rating}-star rating for ${serviceType || "a service"}.`,
       review.id,
     );
-
     res.status(201).json(review);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── NOTIFICATIONS ─────────────────────────────────────────────
-
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 router.get("/notifications", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const notifications = await Notification.findAll({
-      where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
-      limit: 20,
-    });
-    res.json(notifications);
+    res.json(
+      await prisma.notification.findMany({
+        where: { agentId: effectiveId },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/traveller/notifications", authMiddleware, async (req, res) => {
+  try {
+    res.json(
+      await prisma.notification.findMany({
+        where: { travellerId: req.user.id },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1061,41 +983,31 @@ router.get("/notifications", authMiddleware, async (req, res) => {
 router.put("/notifications/mark-read", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    await Notification.update(
-      { isRead: true },
-      { where: { agentId: effectiveId, isRead: false } },
-    );
+    await prisma.notification.updateMany({
+      where: { agentId: effectiveId, isRead: false },
+      data: { isRead: true },
+    });
     res.json({ message: "All notifications marked as read" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── MESSAGES ─────────────────────────────────────────────
-
+// ─── MESSAGES ─────────────────────────────────────────────────────────────────
 router.get("/messages", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const messages = await Message.findAll({
+    const messages = await prisma.message.findMany({
       where: { agentId: effectiveId },
-      order: [["createdAt", "DESC"]],
+      orderBy: { createdAt: "desc" },
     });
-
-    // Group by email to form threads (latest message preview)
     const threadsMap = {};
     messages.forEach((m) => {
       const email = m.customerEmail;
-      if (!threadsMap[email]) {
-        threadsMap[email] = {
-          ...m.toJSON(),
-          unreadCount: 0,
-        };
-      }
-      if (m.status === "unread" && m.senderRole === "traveller") {
+      if (!threadsMap[email]) threadsMap[email] = { ...m, unreadCount: 0 };
+      if (m.status === "unread" && m.senderRole === "traveller")
         threadsMap[email].unreadCount++;
-      }
     });
-
     res.json(Object.values(threadsMap));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1108,14 +1020,12 @@ router.get(
   async (req, res) => {
     try {
       const effectiveId = await getEffectiveAgentId(req.user.id);
-      const messages = await Message.findAll({
-        where: {
-          agentId: effectiveId,
-          customerEmail: req.params.email,
-        },
-        order: [["createdAt", "ASC"]],
-      });
-      res.json(messages);
+      res.json(
+        await prisma.message.findMany({
+          where: { agentId: effectiveId, customerEmail: req.params.email },
+          orderBy: { createdAt: "asc" },
+        }),
+      );
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -1125,23 +1035,19 @@ router.get(
 router.put("/messages/:id/read", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const message = await Message.findOne({
+    const message = await prisma.message.findFirst({
       where: { id: req.params.id, agentId: effectiveId },
     });
     if (!message) return res.status(404).json({ error: "Message not found" });
-
-    await Message.update(
-      { status: "read" },
-      {
-        where: {
-          agentId: effectiveId,
-          customerEmail: message.customerEmail,
-          senderRole: "traveller",
-          status: "unread",
-        },
+    await prisma.message.updateMany({
+      where: {
+        agentId: effectiveId,
+        customerEmail: message.customerEmail,
+        senderRole: "traveller",
+        status: "unread",
       },
-    );
-
+      data: { status: "read" },
+    });
     res.json({ message: "Conversation marked as read" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1151,44 +1057,41 @@ router.put("/messages/:id/read", authMiddleware, async (req, res) => {
 router.post("/messages/:id/reply", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const currentAgent = await HamroAgent.findByPk(effectiveId);
-    const originalMessage = await Message.findOne({
+    const currentAgent = await prisma.hamroAgent.findUnique({
+      where: { id: effectiveId },
+    });
+    const originalMessage = await prisma.message.findFirst({
       where: { id: req.params.id, agentId: effectiveId },
     });
     if (!originalMessage)
       return res.status(404).json({ error: "Message not found" });
 
-    const { message } = req.body;
-    const reply = await Message.create({
-      companyName: currentAgent.companyName,
-      customerName: originalMessage.customerName,
-      customerEmail: originalMessage.customerEmail,
-      travellerId: originalMessage.travellerId,
-      agentId: effectiveId,
-      subject: `Re: ${originalMessage.subject}`,
-      message,
-      senderRole: "agent",
-      status: "unread",
-    });
-
-    await Message.update(
-      { status: "replied" },
-      {
-        where: {
-          agentId: effectiveId,
-          customerEmail: originalMessage.customerEmail,
-          senderRole: "traveller",
-        },
+    const reply = await prisma.message.create({
+      data: {
+        companyName: currentAgent.companyName,
+        customerName: originalMessage.customerName,
+        customerEmail: originalMessage.customerEmail,
+        travellerId: originalMessage.travellerId,
+        agentId: effectiveId,
+        subject: `Re: ${originalMessage.subject}`,
+        message: req.body.message,
+        senderRole: "agent",
+        status: "unread",
       },
-    );
-
+    });
+    await prisma.message.updateMany({
+      where: {
+        agentId: effectiveId,
+        customerEmail: originalMessage.customerEmail,
+        senderRole: "traveller",
+      },
+      data: { status: "replied" },
+    });
     await logActivity(
       req,
       "REPLY_MESSAGE",
       `Replied to message from ${originalMessage.customerName}`,
     );
-
-    // Trigger Notification for the Traveller
     if (originalMessage.travellerId) {
       await createNotification(
         currentAgent.companyName,
@@ -1199,14 +1102,12 @@ router.post("/messages/:id/reply", authMiddleware, async (req, res) => {
         originalMessage.travellerId,
       );
     }
-
     res.status(201).json(reply);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Public endpoint to send message (now links to user if authenticated)
 router.post("/public/message", async (req, res) => {
   try {
     const {
@@ -1217,17 +1118,17 @@ router.post("/public/message", async (req, res) => {
       message,
       travellerId,
     } = req.body;
-    const newMessage = await Message.create({
-      companyName,
-      customerName,
-      customerEmail,
-      subject,
-      message,
-      travellerId: travellerId || null,
-      senderRole: "traveller",
+    const newMessage = await prisma.message.create({
+      data: {
+        companyName,
+        customerName,
+        customerEmail,
+        subject,
+        message,
+        travellerId: travellerId || null,
+        senderRole: "traveller",
+      },
     });
-
-    // Trigger Notification
     await createNotification(
       companyName,
       "message",
@@ -1235,46 +1136,41 @@ router.post("/public/message", async (req, res) => {
       `${customerName} sent a new message regarding "${subject || "No Subject"}".`,
       newMessage.id,
     );
-
     res.status(201).json(newMessage);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── TRAVELLER SPECIFIC DATA ────────────────────────────────
-
+// ─── TRAVELLER SPECIFIC ───────────────────────────────────────────────────────
 router.get("/traveller/analytics", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const bookings = await Booking.findAll({ where: { travellerId: userId } });
+    const bookings = await prisma.booking.findMany({
+      where: { travellerId: userId },
+    });
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const ninetyDaysAgo = new Date(now);
+    ninetyDaysAgo.setDate(now.getDate() - 90);
 
     const totalBookings = bookings.length;
     const totalSpent = bookings.reduce(
       (sum, b) => sum + parseFloat(b.totalAmount || 0),
       0,
     );
-
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const spentThisMonth = bookings
       .filter((b) => new Date(b.createdAt) >= firstDayOfMonth)
       .reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
 
-    // Daily revenue for the last 90 days (3 months)
     const dailyDataMap = {};
-    const ninetyDaysAgo = new Date(now);
-    ninetyDaysAgo.setDate(now.getDate() - 90);
-
     bookings.forEach((b) => {
-      const date = new Date(b.createdAt);
-      if (date >= ninetyDaysAgo) {
-        const dateKey = date.toISOString().split("T")[0];
+      if (new Date(b.createdAt) >= ninetyDaysAgo) {
+        const dateKey = new Date(b.createdAt).toISOString().split("T")[0];
         dailyDataMap[dateKey] =
           (dailyDataMap[dateKey] || 0) + parseFloat(b.totalAmount || 0);
       }
     });
-
     const dailyRevenue = [];
     for (let i = 89; i >= 0; i--) {
       const d = new Date(now);
@@ -1291,18 +1187,18 @@ router.get("/traveller/analytics", authMiddleware, async (req, res) => {
       if (typeCounts[b.bookingType] !== undefined) typeCounts[b.bookingType]++;
     });
 
-    const activeTripsRaw = await Booking.findAll({
+    const activeTripsRaw = await prisma.booking.findMany({
       where: {
         travellerId: userId,
         status: "confirmed",
-        tripStatus: { [Op.ne]: "completed" },
-        bookingType: { [Op.in]: ["package", "trekking"] },
+        tripStatus: { not: "completed" },
+        bookingType: { in: ["package", "trekking"] },
       },
-      include: [{ model: Listing, as: "listing", attributes: ["title"] }],
+      include: { listing: { select: { title: true } } },
     });
     const activeTrips = activeTripsRaw.map((b) => ({
       id: b.id,
-      title: b.listing ? b.listing.title : b.guestName,
+      title: b.listing?.title || b.guestName,
       status: b.tripStatus,
       checklist: b.checklist || [],
     }));
@@ -1334,14 +1230,13 @@ router.get("/traveller/analytics", authMiddleware, async (req, res) => {
 
 router.get("/traveller/messages", authMiddleware, async (req, res) => {
   try {
-    const messages = await Message.findAll({
+    const messages = await prisma.message.findMany({
       where: { travellerId: req.user.id },
-      order: [["createdAt", "DESC"]],
+      orderBy: { createdAt: "desc" },
     });
-    // Group messages by companyName to form "threads"
     const threadsMap = {};
     messages.forEach((m) => {
-      if (!threadsMap[m.companyName]) {
+      if (!threadsMap[m.companyName])
         threadsMap[m.companyName] = {
           companyName: m.companyName,
           lastMsg: m.message,
@@ -1350,10 +1245,8 @@ router.get("/traveller/messages", authMiddleware, async (req, res) => {
           unreadCount: 0,
           messages: [],
         };
-      }
-      if (m.status === "unread" && m.senderRole === "agent") {
+      if (m.status === "unread" && m.senderRole === "agent")
         threadsMap[m.companyName].unreadCount++;
-      }
       threadsMap[m.companyName].messages.push(m);
     });
     res.json(Object.values(threadsMap));
@@ -1365,19 +1258,20 @@ router.get("/traveller/messages", authMiddleware, async (req, res) => {
 router.post("/traveller/messages", authMiddleware, async (req, res) => {
   try {
     const { companyName, message, subject } = req.body;
-    const Traveller = require("../models/Traveller");
-    const traveller = await Traveller.findByPk(req.user.id);
-
-    const newMessage = await Message.create({
-      companyName,
-      travellerId: req.user.id,
-      customerName: traveller.fullName,
-      customerEmail: traveller.email,
-      subject: subject || "Direct Message",
-      message,
-      senderRole: "traveller",
+    const traveller = await prisma.hamroTraveller.findUnique({
+      where: { id: req.user.id },
     });
-
+    const newMessage = await prisma.message.create({
+      data: {
+        companyName,
+        travellerId: req.user.id,
+        customerName: traveller.fullName,
+        customerEmail: traveller.email,
+        subject: subject || "Direct Message",
+        message,
+        senderRole: "traveller",
+      },
+    });
     await createNotification(
       companyName,
       "message",
@@ -1396,17 +1290,15 @@ router.put(
   authMiddleware,
   async (req, res) => {
     try {
-      await Message.update(
-        { status: "read" },
-        {
-          where: {
-            travellerId: req.user.id,
-            companyName: req.params.companyName,
-            senderRole: "agent",
-            status: "unread",
-          },
+      await prisma.message.updateMany({
+        where: {
+          travellerId: req.user.id,
+          companyName: req.params.companyName,
+          senderRole: "agent",
+          status: "unread",
         },
-      );
+        data: { status: "read" },
+      });
       res.json({ message: "Conversation marked as read" });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -1416,11 +1308,12 @@ router.put(
 
 router.get("/traveller/reviews", authMiddleware, async (req, res) => {
   try {
-    const reviews = await Review.findAll({
-      where: { travellerId: req.user.id },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(reviews);
+    res.json(
+      await prisma.review.findMany({
+        where: { travellerId: req.user.id },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1428,26 +1321,27 @@ router.get("/traveller/reviews", authMiddleware, async (req, res) => {
 
 router.get("/traveller/history", authMiddleware, async (req, res) => {
   try {
-    const history = await ActivityLog.findAll({
-      where: { travellerId: req.user.id },
-      order: [["createdAt", "DESC"]],
-      limit: 50,
-    });
-    res.json(history);
+    res.json(
+      await prisma.activityLog.findMany({
+        where: { travellerId: req.user.id },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update Agent Profile (Self)
+// ─── PROFILE ──────────────────────────────────────────────────────────────────
 router.put("/profile", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "agent")
       return res.status(403).json({ error: "Access denied" });
-
-    // Sub-agents update the parent's profile, not their own
     const effectiveId = await getEffectiveAgentId(req.user.id);
-    const agent = await HamroAgent.findByPk(effectiveId);
+    const agent = await prisma.hamroAgent.findUnique({
+      where: { id: effectiveId },
+    });
     if (!agent)
       return res.status(404).json({ error: "Agent profile not found" });
 
@@ -1483,26 +1377,22 @@ router.put("/profile", authMiddleware, async (req, res) => {
     const companyNameChanged =
       newCompanyName && newCompanyName !== oldCompanyName;
 
-    // Use a transaction so the cascade is atomic — either all succeed or none do
-    await sequelize.transaction(async (t) => {
-      await agent.update(update, { transaction: t });
-
+    await prisma.$transaction(async (tx) => {
+      await tx.hamroAgent.update({ where: { id: effectiveId }, data: update });
       if (companyNameChanged) {
-        // Cascade the rename to every related table that uses companyName as a soft-FK
-        const cascadeWhere = {
-          where: { companyName: oldCompanyName },
-          transaction: t,
-        };
-        const cascadeUpdate = { companyName: newCompanyName };
-
+        const cascadeWhere = { companyName: oldCompanyName };
+        const cascadeData = { companyName: newCompanyName };
         await Promise.all([
-          Listing.update(cascadeUpdate, cascadeWhere),
-          Booking.update(cascadeUpdate, cascadeWhere),
-          Review.update(cascadeUpdate, cascadeWhere),
-          Message.update(cascadeUpdate, cascadeWhere),
-          Guide.update(cascadeUpdate, cascadeWhere),
-          Notification.update(cascadeUpdate, cascadeWhere),
-          ActivityLog.update(cascadeUpdate, cascadeWhere),
+          tx.listing.updateMany({ where: cascadeWhere, data: cascadeData }),
+          tx.booking.updateMany({ where: cascadeWhere, data: cascadeData }),
+          tx.review.updateMany({ where: cascadeWhere, data: cascadeData }),
+          tx.message.updateMany({ where: cascadeWhere, data: cascadeData }),
+          tx.guide.updateMany({ where: cascadeWhere, data: cascadeData }),
+          tx.notification.updateMany({
+            where: cascadeWhere,
+            data: cascadeData,
+          }),
+          tx.activityLog.updateMany({ where: cascadeWhere, data: cascadeData }),
         ]);
       }
     });
@@ -1512,145 +1402,72 @@ router.put("/profile", authMiddleware, async (req, res) => {
       "UPDATE_PROFILE",
       companyNameChanged
         ? `Company name updated: "${oldCompanyName}" → "${newCompanyName}". All linked data cascaded.`
-        : `Updated professional profile details`,
+        : "Updated professional profile details",
     );
 
-    res.json(
-      await HamroAgent.findByPk(req.user.id, {
-        attributes: { exclude: ["password"] },
-      }),
-    );
+    const updated = await prisma.hamroAgent.findUnique({
+      where: { id: req.user.id },
+      omit: { password: true },
+    });
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── SUPER ADMIN ROUTES ─────────────────────────────────────
-
-// Get platform stats for Super Admin
+// ─── SUPER ADMIN ──────────────────────────────────────────────────────────────
 router.get("/super/stats", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "superadmin")
       return res.status(403).json({ error: "Unauthorized" });
-
     const { range } = req.query;
-    let monthsToFetch = 3;
-    let bucketExpression;
-    let labelFormat = "week";
-    let stepInterval = "7 days";
-
-    if (range === "6m") {
-      monthsToFetch = 6;
-      labelFormat = "biweekly";
-      stepInterval = "15 days";
-      bucketExpression = sequelize.literal(
-        `date_trunc('month', "Booking"."createdAt") + (CASE WHEN extract(day from "Booking"."createdAt") <= 15 THEN 0 ELSE 15 END * interval '1 day')`,
-      );
-    } else if (range === "12m") {
-      monthsToFetch = 12;
-      labelFormat = "month";
-      stepInterval = "1 month";
-      bucketExpression = sequelize.fn(
-        "date_trunc",
-        "month",
-        sequelize.col("Booking.createdAt"),
-      );
-    } else {
-      monthsToFetch = 3;
-      labelFormat = "week";
-      stepInterval = "7 days";
-      bucketExpression = sequelize.fn(
-        "date_trunc",
-        "week",
-        sequelize.col("Booking.createdAt"),
-      );
-    }
-
+    const monthsToFetch = range === "12m" ? 12 : range === "6m" ? 6 : 3;
     const dateLimit = new Date();
-    dateLimit.setHours(0, 0, 0, 0);
     dateLimit.setMonth(dateLimit.getMonth() - monthsToFetch);
 
-    // Fetch actual data
     const [
       totalAgents,
       verifiedAgents,
       pendingAgents,
       totalTravellers,
-      totalRevenue,
-      dbHistory,
+      revenueAgg,
+      confirmedBookings,
     ] = await Promise.all([
-      HamroAgent.count(),
-      HamroAgent.count({ where: { verified: true } }),
-      HamroAgent.count({ where: { verificationStatus: "pending" } }),
-      require("../models/Traveller").count(),
-      Booking.sum("totalAmount", { where: { status: "confirmed" } }),
-      Booking.findAll({
-        where: {
-          status: "confirmed",
-          createdAt: { [Op.gte]: dateLimit },
-        },
-        attributes: [
-          [bucketExpression, "bucket"],
-          [sequelize.fn("SUM", sequelize.col("totalAmount")), "total"],
-        ],
-        group: ["bucket"],
-        order: [["bucket", "ASC"]],
+      prisma.hamroAgent.count(),
+      prisma.hamroAgent.count({ where: { verified: true } }),
+      prisma.hamroAgent.count({ where: { verificationStatus: "pending" } }),
+      prisma.hamroTraveller.count(),
+      prisma.booking.aggregate({
+        where: { status: "confirmed" },
+        _sum: { totalAmount: true },
+      }),
+      prisma.booking.findMany({
+        where: { status: "confirmed", createdAt: { gte: dateLimit } },
+        select: { createdAt: true, totalAmount: true },
       }),
     ]);
 
-    // Create a map of existing data for quick lookup
-    const dataMap = {};
-    dbHistory.forEach((h) => {
-      const bucketDate = new Date(h.get("bucket")).getTime();
-      dataMap[bucketDate] = parseFloat(h.get("total"));
-    });
-
-    // Generate full sequence of buckets to ensure no gaps
-    const processedHistory = [];
-    let currentBucket = new Date(dateLimit);
-    let counter = 1;
-
-    while (currentBucket <= new Date()) {
-      const bucketTime = currentBucket.getTime();
-      let label = "";
-
-      if (labelFormat === "week") {
-        label = `W${counter}`;
-      } else if (labelFormat === "biweekly") {
-        const day = currentBucket.getDate();
-        label = `${currentBucket.toLocaleDateString("en-US", { month: "short" })} ${day <= 15 ? "01" : "15"}`;
-      } else {
-        label = currentBucket.toLocaleDateString("en-US", { month: "short" });
-      }
-
-      processedHistory.push({
-        month: label,
-        total: dataMap[bucketTime] || 0,
+    // Group by month
+    const monthMap = {};
+    confirmedBookings.forEach((b) => {
+      const key = b.createdAt.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
       });
-
-      // Increment bucket
-      if (labelFormat === "week") {
-        currentBucket.setDate(currentBucket.getDate() + 7);
-      } else if (labelFormat === "biweekly") {
-        if (currentBucket.getDate() <= 15) {
-          currentBucket.setDate(16);
-        } else {
-          currentBucket.setMonth(currentBucket.getMonth() + 1);
-          currentBucket.setDate(1);
-        }
-      } else {
-        currentBucket.setMonth(currentBucket.getMonth() + 1);
-      }
-      counter++;
-    }
+      monthMap[key] = (monthMap[key] || 0) + parseFloat(b.totalAmount || 0);
+    });
+    const revenueHistory = Object.entries(monthMap).map(([month, total]) => ({
+      month,
+      total,
+    }));
 
     res.json({
       totalAgents,
       verifiedAgents,
       pendingAgents,
       totalTravellers,
-      totalRevenue: totalRevenue || 0,
-      revenueHistory: processedHistory,
+      totalRevenue: parseFloat(revenueAgg._sum.totalAmount || 0),
+      revenueHistory,
       userDistribution: [
         { label: "Verified Agencies", value: verifiedAgents, color: "#C5A059" },
         {
@@ -1666,68 +1483,63 @@ router.get("/super/stats", authMiddleware, async (req, res) => {
   }
 });
 
-// Get all agents for Super Admin
 router.get("/super/agents", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "superadmin")
       return res.status(403).json({ error: "Unauthorized" });
-    const agents = await HamroAgent.findAll({
-      attributes: { exclude: ["password"] },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(agents);
+    res.json(
+      await prisma.hamroAgent.findMany({
+        omit: { password: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get all travellers for Super Admin
 router.get("/super/travellers", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "superadmin")
       return res.status(403).json({ error: "Unauthorized" });
-    const HamroTraveller = require("../models/Traveller");
-    const travellers = await HamroTraveller.findAll({
-      attributes: { exclude: ["password"] },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(travellers);
+    res.json(
+      await prisma.hamroTraveller.findMany({
+        omit: { password: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Verify/Reject Agent
 router.put("/super/verify-agent/:id", authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== "superadmin")
       return res.status(403).json({ error: "Unauthorized" });
-    const { status, verified } = req.body; // status: 'verified', 'rejected', 'pending'; verified: true/false
-
-    const agent = await HamroAgent.findByPk(req.params.id);
-    if (!agent) return res.status(404).json({ error: "Agent not found" });
-
-    await agent.update({
-      verificationStatus: status,
-      verified: verified, // This controls the "PRO" badge
+    const { status, verified } = req.body;
+    const agent = await prisma.hamroAgent.findUnique({
+      where: { id: req.params.id },
     });
-
-    // Create notification for the agent
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    const updated = await prisma.hamroAgent.update({
+      where: { id: req.params.id },
+      data: { verificationStatus: status, verified },
+    });
     await createNotification(
       agent.companyName,
       "alert",
       verified ? "Agency Verified!" : "Verification Update",
       verified
-        ? "Congratulations! Your agency has been verified. You now have the PRO badge and can manage professional guides."
+        ? "Congratulations! Your agency has been verified. You now have the PRO badge."
         : `Your verification status has been updated to: ${status.toUpperCase()}.`,
       null,
       null,
       agent.id,
     );
-
     res.json({
       message: `Agent verification status updated to ${status}`,
-      agent,
+      agent: updated,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

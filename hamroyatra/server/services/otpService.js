@@ -1,31 +1,30 @@
-// This file manages OTP generation, storage, verification, and email delivery.
-// OTPs are 6-digit, crypto-secure, expire in 10 minutes, and are stored in-memory.
-// Email delivery uses Resend API (HTTP-based, works on Render free tier).
+// OTP service — generates, stores, and verifies 6-digit codes sent via Resend
+// OTPs expire after 10 minutes and are kept in memory (Map)
 
 const crypto = require("crypto");
 const { Resend } = require("resend");
 
-// In-memory OTP store: key = email, value = { otp, expiresAt, verified }
+// { email -> { otp, expiresAt, verified } }
 const otpStore = new Map();
 
-// Initialize lazily so missing env var doesn't crash on startup
+// lazy init so a missing env var doesn't crash on startup
 let resendClient = null;
 const getResend = () => {
   if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY);
   return resendClient;
 };
 
-// Generate a cryptographically secure 6-digit OTP
+// crypto-secure 6-digit OTP
 const generateOTP = () => {
   const bytes = crypto.randomBytes(3);
   const num = bytes.readUIntBE(0, 3) % 1000000;
   return String(num).padStart(6, "0");
 };
 
-// Send OTP email and store it
+// send OTP and store it in memory
 const sendOTP = async (email, purpose = "registration") => {
   const otp = generateOTP();
-  const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+  const expiresAt = Date.now() + 10 * 60 * 1000;
 
   otpStore.set(email, { otp, expiresAt, verified: false });
 
@@ -65,7 +64,7 @@ const sendOTP = async (email, purpose = "registration") => {
   return true;
 };
 
-// Verify OTP — returns true/false, marks as verified on success
+// marks as verified on success
 const verifyOTP = (email, inputOtp) => {
   const record = otpStore.get(email);
   if (!record) return { valid: false, reason: "No OTP found for this email" };
@@ -80,13 +79,13 @@ const verifyOTP = (email, inputOtp) => {
   return { valid: true };
 };
 
-// Check if email has a verified OTP
+// returns true only if OTP was verified and hasn't expired yet
 const isOTPVerified = (email) => {
   const record = otpStore.get(email);
   return record && record.verified === true && Date.now() <= record.expiresAt;
 };
 
-// Clear OTP after account is created
+// call this after account creation so the OTP can't be reused
 const clearOTP = (email) => {
   otpStore.delete(email);
 };

@@ -1,32 +1,27 @@
-// This file handles all authentication logic: register traveller, register agent, login, and logout.
-// Passwords are hashed with bcrypt. A JWT token is issued on success and stored as an HTTP-only cookie.
+// Handles register, login, and logout. Passwords hashed with bcrypt, auth via JWT cookie.
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const HamroTraveller = require("../models/Traveller");
-const HamroAgent = require("../models/Agent");
+const prisma = require("../config/prisma");
 const { isOTPVerified, clearOTP } = require("../services/otpService");
 
-// Helper to generate token
-const generateToken = (user, type) => {
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role, type: type },
+const generateToken = (user, type) =>
+  jwt.sign(
+    { id: user.id, email: user.email, role: user.role, type },
     process.env.JWT_SECRET,
     { expiresIn: "24h" },
   );
-};
 
 const sendToken = (user, type, statusCode, res, message) => {
   const token = generateToken(user, type);
-  const options = {
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-  };
   res
     .status(statusCode)
-    .cookie("hv_token", token, options)
+    .cookie("hv_token", token, {
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    })
     .json({
       message,
       user: {
@@ -41,38 +36,32 @@ const sendToken = (user, type, statusCode, res, message) => {
 exports.registerTraveller = async (req, res) => {
   try {
     const { fullName, email, password, contactNumber } = req.body;
-
-    if (!email || !password || !fullName) {
+    if (!email || !password || !fullName)
       return res.status(400).json({ error: "All fields are required" });
-    }
 
-    // OTP must be verified before account creation
-    if (!isOTPVerified(email)) {
+    if (!isOTPVerified(email))
       return res.status(403).json({
         error: "Email OTP not verified. Please verify your email first.",
       });
-    }
 
-    const existingTraveller = await HamroTraveller.findOne({
-      where: { email },
-    });
-    const existingAgent = await HamroAgent.findOne({ where: { email } });
-
-    if (existingTraveller || existingAgent) {
+    const existing =
+      (await prisma.hamroTraveller.findUnique({ where: { email } })) ||
+      (await prisma.hamroAgent.findUnique({ where: { email } }));
+    if (existing)
       return res.status(400).json({ error: "Email already registered" });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    const newTraveller = await HamroTraveller.create({
-      fullName,
-      email,
-      password: hashedPassword,
-      contactNumber,
-      role: "traveller",
+    const newTraveller = await prisma.hamroTraveller.create({
+      data: {
+        fullName,
+        email,
+        password: hashedPassword,
+        contactNumber,
+        role: "traveller",
+      },
     });
 
-    clearOTP(email); // Consume the OTP after successful registration
+    clearOTP(email);
     sendToken(newTraveller, "traveller", 201, res, "Registration Successful");
   } catch (err) {
     console.error("Traveller Register Error:", err);
@@ -101,51 +90,46 @@ exports.registerAgent = async (req, res) => {
       citizenshipIssueDate,
     } = req.body;
 
-    if (!email || !password || !fullName || !companyName) {
+    if (!email || !password || !fullName || !companyName)
       return res
         .status(400)
         .json({ error: "All essential fields are required" });
-    }
 
-    // OTP must be verified before account creation
-    if (!isOTPVerified(email)) {
+    if (!isOTPVerified(email))
       return res.status(403).json({
         error: "Email OTP not verified. Please verify your email first.",
       });
-    }
 
-    const existingTraveller = await HamroTraveller.findOne({
-      where: { email },
-    });
-    const existingAgent = await HamroAgent.findOne({ where: { email } });
-
-    if (existingTraveller || existingAgent) {
+    const existing =
+      (await prisma.hamroTraveller.findUnique({ where: { email } })) ||
+      (await prisma.hamroAgent.findUnique({ where: { email } }));
+    if (existing)
       return res.status(400).json({ error: "Email already registered" });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    const newAgent = await HamroAgent.create({
-      fullName,
-      email,
-      password: hashedPassword,
-      location,
-      phoneNo,
-      companyName,
-      role: "agent",
-      companyOwner,
-      ownerContactNo,
-      panNumber,
-      gender,
-      serviceTypes,
-      panImage,
-      citizenshipImage,
-      citizenshipNumber,
-      citizenshipDistrict,
-      citizenshipIssueDate,
+    const newAgent = await prisma.hamroAgent.create({
+      data: {
+        fullName,
+        email,
+        password: hashedPassword,
+        location,
+        phoneNo,
+        companyName,
+        role: "agent",
+        companyOwner,
+        ownerContactNo,
+        panNumber,
+        gender,
+        serviceTypes,
+        panImage,
+        citizenshipImage,
+        citizenshipNumber,
+        citizenshipDistrict,
+        citizenshipIssueDate,
+      },
     });
 
-    clearOTP(email); // Consume the OTP after successful registration
+    clearOTP(email);
     sendToken(newAgent, "agent", 201, res, "Agent Registration Successful");
   } catch (err) {
     console.error("Agent Register Error:", err);
@@ -156,23 +140,15 @@ exports.registerAgent = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
-    }
 
     if (
       email === process.env.ADMIN_EMAIL &&
       password === process.env.ADMIN_PASS
     ) {
-      const adminUser = {
-        id: 0,
-        email,
-        fullName: "Super Admin",
-        role: "superadmin",
-      };
       return sendToken(
-        adminUser,
+        { id: 0, email, fullName: "Super Admin", role: "superadmin" },
         "superadmin",
         200,
         res,
@@ -180,22 +156,16 @@ exports.login = async (req, res) => {
       );
     }
 
-    let user = await HamroTraveller.findOne({ where: { email } });
+    let user = await prisma.hamroTraveller.findUnique({ where: { email } });
     let type = "traveller";
-
     if (!user) {
-      user = await HamroAgent.findOne({ where: { email } });
+      user = await prisma.hamroAgent.findUnique({ where: { email } });
       type = "agent";
     }
-
-    if (!user) {
-      return res.status(401).json({ error: "Wrong Credentials" });
-    }
+    if (!user) return res.status(401).json({ error: "Wrong Credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: "Wrong Password" });
-    }
+    if (!isMatch) return res.status(401).json({ error: "Wrong Password" });
 
     sendToken(user, type, 200, res, "Logged in Successfully");
   } catch (err) {

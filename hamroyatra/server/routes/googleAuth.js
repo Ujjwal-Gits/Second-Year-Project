@@ -1,17 +1,13 @@
-// This file handles Google OAuth login using Passport.js.
-// When a user clicks "Continue with Google", they are redirected to Google,
-// then Google sends them back here. We find or create a Traveller account,
-// issue a JWT cookie, and redirect them back to the frontend.
+// Google OAuth — finds or creates a traveller account, then issues a JWT cookie
 
 const express = require("express");
 const router = express.Router();
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const jwt = require("jsonwebtoken");
-const HamroTraveller = require("../models/Traveller");
+const prisma = require("../config/prisma");
 require("dotenv").config();
 
-// ── Configure Google Strategy ─────────────────────────────────────────────────
 passport.use(
   new GoogleStrategy(
     {
@@ -21,38 +17,36 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log(
-          "[GOOGLE_AUTH] Profile received:",
-          profile.id,
-          profile.displayName,
-        );
         const email = profile.emails?.[0]?.value;
         const fullName = profile.displayName;
         const googleId = profile.id;
 
-        // Check if traveller already exists by googleId or email
-        let traveller = await HamroTraveller.findOne({ where: { googleId } });
+        let traveller = await prisma.hamroTraveller.findFirst({
+          where: { googleId },
+        });
 
         if (!traveller && email) {
-          // Check if they registered with email/password before
-          traveller = await HamroTraveller.findOne({ where: { email } });
+          traveller = await prisma.hamroTraveller.findUnique({
+            where: { email },
+          });
           if (traveller) {
-            // Link Google to existing account
-            traveller.googleId = googleId;
-            traveller.authProvider = "google";
-            await traveller.save();
+            traveller = await prisma.hamroTraveller.update({
+              where: { email },
+              data: { googleId, authProvider: "google" },
+            });
           }
         }
 
         if (!traveller) {
-          // Create a brand new traveller account via Google
-          traveller = await HamroTraveller.create({
-            fullName,
-            email,
-            googleId,
-            authProvider: "google",
-            password: "google-oauth-no-password", // placeholder, never used
-            role: "traveller",
+          traveller = await prisma.hamroTraveller.create({
+            data: {
+              fullName,
+              email,
+              googleId,
+              authProvider: "google",
+              password: "google-oauth-no-password",
+              role: "traveller",
+            },
           });
         }
 
@@ -65,11 +59,9 @@ passport.use(
   ),
 );
 
-// Passport session stubs — we use JWT so these are minimal
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => done(null, { id }));
 
-// ── Step 1: Redirect user to Google ──────────────────────────────────────────
 router.get(
   "/google",
   passport.authenticate("google", {
@@ -78,19 +70,12 @@ router.get(
   }),
 );
 
-// ── Step 2: Google redirects back here after login ───────────────────────────
 router.get("/google/callback", (req, res, next) => {
   passport.authenticate("google", { session: false }, (err, user) => {
-    if (err) {
-      console.error("Google OAuth Error:", err.message);
+    if (err || !user) {
       return res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
     }
-    if (!user) {
-      console.error("Google OAuth: No user returned");
-      return res.redirect(`${process.env.CLIENT_URL}/login?error=no_user`);
-    }
 
-    // Issue JWT token (same format as email/password login)
     const token = jwt.sign(
       {
         id: user.id,
@@ -102,7 +87,6 @@ router.get("/google/callback", (req, res, next) => {
       { expiresIn: "24h" },
     );
 
-    // Set cookie and redirect to frontend
     res.cookie("hv_token", token, {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       httpOnly: true,

@@ -1,48 +1,31 @@
+// Agent public profile, follow/unfollow
+
 const express = require("express");
 const router = express.Router();
-const HamroAgent = require("../models/Agent");
-const Listing = require("../models/Listing");
-const Follower = require("../models/Follower");
-const Review = require("../models/Review");
-const Guide = require("../models/Guide");
+const prisma = require("../config/prisma");
 
-// Get public profile of an agent
-// If the requested agent is a sub-agent, transparently return the parent's profile
+// resolves sub-agents to their parent's profile
 router.get("/:id", async (req, res) => {
   try {
-    // First fetch the requested agent to check if it's a sub-agent
-    const requested = await HamroAgent.findByPk(req.params.id, {
-      attributes: ["id", "parentAgentId"],
+    const requested = await prisma.hamroAgent.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, parentAgentId: true },
     });
     if (!requested) return res.status(404).json({ error: "Agent not found" });
 
-    // Resolve to the root owner
     const effectiveId = requested.parentAgentId || requested.id;
 
-    const agent = await HamroAgent.findByPk(effectiveId, {
-      attributes: { exclude: ["password"] },
-      include: [
-        {
-          model: Listing,
-          as: "listings",
-          where: { isActive: true },
-          required: false,
-        },
-        {
-          model: Follower,
-          as: "followers",
-          required: false,
-        },
-        {
-          model: Guide,
-          as: "guides",
-          required: false,
-        },
-      ],
+    const agent = await prisma.hamroAgent.findUnique({
+      where: { id: effectiveId },
+      omit: { password: true },
+      include: {
+        listings: { where: { isActive: true } },
+        followers: true,
+        guides: true,
+      },
     });
 
     if (!agent) return res.status(404).json({ error: "Agent not found" });
-
     res.json(agent);
   } catch (err) {
     console.error(err);
@@ -50,25 +33,24 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Follow an agent
+// Follow / unfollow an agent
 router.post("/:id/follow", async (req, res) => {
   try {
-    const { travellerId } = req.body; // In a real app, get this from auth middleware
+    const { travellerId } = req.body;
     if (!travellerId)
       return res.status(400).json({ error: "Traveller ID required" });
 
     const agentId = req.params.id;
-
-    const existingFollow = await Follower.findOne({
+    const existing = await prisma.follower.findFirst({
       where: { agentId, travellerId },
     });
 
-    if (existingFollow) {
-      await existingFollow.destroy();
+    if (existing) {
+      await prisma.follower.delete({ where: { id: existing.id } });
       return res.json({ message: "Unfollowed successfully", following: false });
     }
 
-    await Follower.create({ agentId, travellerId });
+    await prisma.follower.create({ data: { agentId, travellerId } });
     res.json({ message: "Followed successfully", following: true });
   } catch (err) {
     console.error(err);
@@ -80,7 +62,7 @@ router.post("/:id/follow", async (req, res) => {
 router.get("/:id/is-following/:travellerId", async (req, res) => {
   try {
     const { id: agentId, travellerId } = req.params;
-    const follow = await Follower.findOne({
+    const follow = await prisma.follower.findFirst({
       where: { agentId, travellerId },
     });
     res.json({ following: !!follow });

@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model HamroAgent {
+  id                   String    @id @default(uuid())
+  fullName             String
+  email                String    @unique
+  password             String
+  location             String?
+  phoneNo              String?
+  companyName          String?
+  bio                  String?
+  profileImage         String?
+  coverImage           String?
+  website              String?
+  socialLinks          Json      @default("{\"facebook\":\"\",\"twitter\":\"\",\"instagram\":\"\",\"linkedin\":\"\"}")
+  verified             Boolean   @default(false)
+  role                 String    @default("agent")
+  panNumber            String?
+  legalCompanyName     String?
+  companyOwner         String?
+  ownerContactNo       String?
+  panImage             String?
+  citizenshipImage     String?
+  serviceTypes         Json?
+  citizenshipNumber    String?
+  citizenshipDistrict  String?
+  citizenshipIssueDate String?
+  gender               String?
+  verificationStatus   String    @default("pending")
+  parentAgentId        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  listings      Listing[]
+  followers     Follower[]
+  guides        Guide[]
+  notifications Notification[]
+  bookings      Booking[]
+
+  @@map("HamroAgents")
+}
+
+model HamroTraveller {
+  id            String   @id @default(uuid())
+  fullName      String
+  email         String   @unique
+  password      String?
+  contactNumber String?
+  role          String   @default("traveller")
+  bookmarks     Json     @default("[]")
+  savedItineraries Json  @default("[]")
+  googleId      String?
+  authProvider  String   @default("local")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  followers     Follower[]
+  reviews       Review[]
+  notifications Notification[]
+  bookings      Booking[]
+
+  @@map("HamroTravellers")
+}
+
+model Listing {
+  id            String   @id @default(uuid())
+  agentId       String
+  title         String
+  description   String?
+  type          ListingType
+  price         Decimal  @db.Decimal(10, 2)
+  offers        String?
+  duration      Int      @default(1)
+  images        String[] @default([])
+  totalRooms    Int      @default(0)
+  acRooms       Int      @default(0)
+  nonAcRooms    Int      @default(0)
+  familyRooms   Int      @default(0)
+  coupleRooms   Int      @default(0)
+  isActive      Boolean  @default(true)
+  companyName   String?
+  amenities     String[] @default([])
+  itinerary     Json     @default("[]")
+  hotelCategory HotelCategory @default(hotel)
+  acPrice       Decimal  @default(0) @db.Decimal(10, 2)
+  nonAcPrice    Decimal  @default(0) @db.Decimal(10, 2)
+  familyPrice   Decimal  @default(0) @db.Decimal(10, 2)
+  couplePrice   Decimal  @default(0) @db.Decimal(10, 2)
+  difficulty    Difficulty?
+  bestSeasons   String[] @default([])
+  location      String?
+  maxGroupSize  Int?
+  minAge        Int?     @default(0)
+  tags          String[] @default([])
+  avgRating     Float    @default(0)
+  reviewCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  agent    HamroAgent @relation(fields: [agentId], references: [id])
+  bookings Booking[]
+  reviews  Review[]
+  views    ListingView[]
+
+  @@map("Listings")
+}
+
+model Booking {
+  id             String        @id @default(uuid())
+  listingId      String?
+  agentId        String?
+  travellerId    String?
+  guestName      String
+  guestEmail     String?
+  guestPhone     String?
+  bookingType    String
+  startDate      DateTime      @db.Date
+  endDate        DateTime?     @db.Date
+  roomCount      Int           @default(1)
+  roomType       String?
+  roomSelection  Json          @default("{}")
+  guideName      String?
+  totalAmount    Decimal       @default(0) @db.Decimal(10, 2)
+  advanceAmount  Decimal       @default(0) @db.Decimal(10, 2)
+  paymentStatus  String        @default("pending")
+  idType         String?
+  idNumber       String?
+  otherIdType    String?
+  serialId       String?
+  status         String        @default("confirmed")
+  notes          String?
+  companyName    String?
+  createdBy      CreatedBy     @default(agent)
+  tripStatus     TripStatus    @default(pending)
+  checklist      Json          @default("[]")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  listing   Listing?       @relation(fields: [listingId], references: [id])
+  agent     HamroAgent?    @relation(fields: [agentId], references: [id])
+  traveller HamroTraveller? @relation(fields: [travellerId], references: [id])
+
+  @@map("Bookings")
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  listingId   String
+  travellerId String?
+  customerName String
+  rating      Int
+  message     String
+  serviceType String?
+  status      String   @default("pending")
+  companyName String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  listing   Listing        @relation(fields: [listingId], references: [id])
+  traveller HamroTraveller? @relation(fields: [travellerId], references: [id])
+
+  @@map("Reviews")
+}
+
+model Guide {
+  id                String    @id @default(uuid())
+  fullName          String
+  email             String
+  phoneNo           String
+  experienceYears   Int
+  profileImage      String?
+  certificateImage  String
+  certificateExpiry DateTime  @db.Date
+  agentId           String
+  companyName       String
+  lastAlertSent     DateTime? @db.Date
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  agent HamroAgent @relation(fields: [agentId], references: [id])
+
+  @@map("Guides")
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  companyName   String
+  travellerId   String?
+  agentId       String?
+  senderRole    String   @default("traveller")
+  customerName  String
+  customerEmail String
+  subject       String?
+  message       String
+  status        String   @default("unread")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("Messages")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  companyName String?
+  travellerId String?
+  agentId     String?
+  type        String
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  targetId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agent     HamroAgent?     @relation(fields: [agentId], references: [id])
+  traveller HamroTraveller? @relation(fields: [travellerId], references: [id])
+
+  @@map("Notifications")
+}
+
+model ActivityLog {
+  id            String   @id @default(uuid())
+  agentId       String?
+  agentName     String?
+  travellerId   String?
+  travellerName String?
+  companyName   String?
+  action        String
+  details       String
+  targetId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("ActivityLogs")
+}
+
+model Follower {
+  id          String   @id @default(uuid())
+  agentId     String
+  travellerId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agent     HamroAgent     @relation(fields: [agentId], references: [id])
+  traveller HamroTraveller @relation(fields: [travellerId], references: [id])
+
+  @@map("Followers")
+}
+
+model ListingView {
+  id                String   @id @default(uuid())
+  listingId         String
+  sessionId         String
+  userId            String?
+  userRole          String?
+  listingType       String?
+  listingLocation   String?
+  listingTags       String[] @default([])
+  listingDifficulty String?
+  listingPrice      Float?
+  viewCount         Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([listingId])
+  @@map("ListingViews")
+}
+
+model UserPreference {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  userRole             String   @default("traveller")
+  preferredTypes       String[] @default([])
+  preferredDifficulties String[] @default([])
+  preferredTags        String[] @default([])
+  preferredLocations   String[] @default([])
+  avgSpend             Float    @default(0)
+  sampleSize           Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("UserPreferences")
+}
+
+enum ListingType {
+  hotel
+  trekking
+  travel
+}
+
+enum HotelCategory {
+  hotel
+  homestay
+}
+
+enum Difficulty {
+  easy
+  moderate
+  hard
+  extreme
+}
+
+enum CreatedBy {
+  agent
+  traveller
+}
+
+enum TripStatus {
+  pending
+  active
+  completed
+}

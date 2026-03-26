@@ -1,11 +1,10 @@
-// This middleware protects routes that require a logged-in user.
-// It reads the JWT token from the cookie (or Authorization header),
-// verifies it, and attaches the decoded user info to req.user.
+// JWT auth middleware — reads hv_token from cookie or Authorization header,
+// verifies it, and puts the decoded user on req.user
 
 const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
-  // Check for token in cookie first, then header
+  // cookie first, then header fallback
   const token =
     req.cookies.hv_token || req.header("Authorization")?.replace("Bearer ", "");
 
