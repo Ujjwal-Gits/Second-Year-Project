@@ -254,10 +254,15 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/auth/forgot-password/send-otp`,
         { email: forgotEmail },
+        { timeout: 15000 },
       );
       setForgotStep(2);
     } catch (err) {
-      setForgotError(err.response?.data?.error || "Failed to send OTP");
+      if (err.code === "ECONNABORTED") {
+        setForgotError("Request timed out. Please try again.");
+      } else {
+        setForgotError(err.response?.data?.error || "Failed to send OTP");
+      }
     } finally {
       setForgotLoading(false);
     }
