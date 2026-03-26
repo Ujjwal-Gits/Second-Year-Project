@@ -303,7 +303,7 @@ const Testimonials = () => {
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-[#1A2B23]/70 uppercase tracking-widest leading-none">
-                  @anish
+                  @binisha
                 </span>
                 <div className="bg-[#1A2B23] text-[#C5A059] text-[9px] font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                   <span className="material-icons text-[10px]">star</span> 4.5
