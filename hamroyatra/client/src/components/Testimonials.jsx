@@ -7,7 +7,7 @@ import NischalImg from "../assets/Nischal.jpeg";
 import SujitImg from "../assets/Sujit.jpg";
 import UjjwalImg from "../assets/Ujjwal.jpg";
 import SamirImg from "../assets/Samir.jpeg";
-import AnishImg from "../assets/Anish.jpg";
+import BinishaImg from "../assets/Binisha.jpeg";
 import PritamImg from "../assets/Pritam.jpeg";
 const Testimonials = () => {
   // Brand Colors
@@ -287,10 +287,10 @@ const Testimonials = () => {
             viewport={{ once: false, amount: 0.2 }}
             className="absolute top-[52%] mt-[20px] right-[7%] z-20 flex items-center gap-4"
           >
-            <div className="w-14 h-14 rounded-full border-4 border-[#C5A059] overflow-hidden shadow-lg bg-white shrink-0">
+            <div className="w-20 h-20 rounded-full border-4 border-[#C5A059] overflow-hidden shadow-lg bg-white shrink-0">
               <img
-                src={AnishImg}
-                alt="Anish"
+                src={BinishaImg}
+                alt="Binisha"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -316,13 +316,62 @@ const Testimonials = () => {
         {/* MOBILE VIEW - Cinematic Chat Conversation */}
         <div className="lg:hidden flex flex-col gap-12 pt-10 pb-20 overflow-hidden">
           {[
-            { img: AnishImg, name: "Anish", handle: "@anish", title: "Best Place to Book Homestay in Nepal", text: "I have booked homestay in from HamroYatra, got best service.", rating: "4.5" },
-            { img: PritamImg, name: "Pritam", handle: "@pritam_globally", title: "Exceptional Foreigner Support", text: "I think that's great! As a Foreigner, I feel they give the best Service in the Himalayas.", rating: "5.0" },
-            { img: NischalImg, name: "Nischal", handle: "@nischal_treks", title: "Legendary Everest Journey", text: "Booked the Everest Base Camp Trek, got best service and the guide was also very experienced.", rating: "4.8" },
-            { img: AsmitImg, name: "Asmit", handle: "@asmit_himal", title: "Annapurna was Breathless", text: "Booked the Annapurna Trek from HamroYatra, got best service and guide was professional.", rating: "4.9" },
-            { img: SamirImg, name: "Samir", handle: "@samir_ventures", title: "Safari of a Lifetime", text: "Booked a premium Chitwan Safari package. The entire trip was professionally curated with excellence.", rating: "5.0" },
-            { img: SujitImg, name: "Sujit", handle: "@sujit_mountains", title: "Langtang Hidden Gem", text: "Booked the Langtang Trek from HamroYatra, got best service and the guide was experienced.", rating: "4.7" },
-            { img: UjjwalImg, name: "Ujjwal", handle: "@HamroYatra_CEO", title: "Our Commitment to You", text: "Our mission is to provide the most authentic and safe Himalayan experiences. We take pride in our service.", rating: "5.0" }
+            {
+              img: BinishaImg,
+              name: "Binisha",
+              handle: "@binisha",
+              title: "Best Place to Book Homestay in Nepal",
+              text: "I have booked homestay in from HamroYatra, got best service.",
+              rating: "4.5",
+            },
+            {
+              img: PritamImg,
+              name: "Pritam",
+              handle: "@pritam_globally",
+              title: "Exceptional Foreigner Support",
+              text: "I think that's great! As a Foreigner, I feel they give the best Service in the Himalayas.",
+              rating: "5.0",
+            },
+            {
+              img: NischalImg,
+              name: "Nischal",
+              handle: "@nischal_treks",
+              title: "Legendary Everest Journey",
+              text: "Booked the Everest Base Camp Trek, got best service and the guide was also very experienced.",
+              rating: "4.8",
+            },
+            {
+              img: AsmitImg,
+              name: "Asmit",
+              handle: "@asmit_himal",
+              title: "Annapurna was Breathless",
+              text: "Booked the Annapurna Trek from HamroYatra, got best service and guide was professional.",
+              rating: "4.9",
+            },
+            {
+              img: SamirImg,
+              name: "Samir",
+              handle: "@samir_ventures",
+              title: "Safari of a Lifetime",
+              text: "Booked a premium Chitwan Safari package. The entire trip was professionally curated with excellence.",
+              rating: "5.0",
+            },
+            {
+              img: SujitImg,
+              name: "Sujit",
+              handle: "@sujit_mountains",
+              title: "Langtang Hidden Gem",
+              text: "Booked the Langtang Trek from HamroYatra, got best service and the guide was experienced.",
+              rating: "4.7",
+            },
+            {
+              img: UjjwalImg,
+              name: "Ujjwal",
+              handle: "@HamroYatra_CEO",
+              title: "Our Commitment to You",
+              text: "Our mission is to provide the most authentic and safe Himalayan experiences. We take pride in our service.",
+              rating: "5.0",
+            },
           ].map((item, idx) => {
             const isEven = idx % 2 === 0;
             return (
@@ -333,23 +382,33 @@ const Testimonials = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.3 }}
-                className={`flex items-end gap-3 w-full ${isEven ? 'flex-row' : 'flex-row-reverse'}`}
+                className={`flex items-end gap-3 w-full ${isEven ? "flex-row" : "flex-row-reverse"}`}
               >
                 {/* Avatar */}
                 <div className="w-12 h-12 rounded-full border-[3px] border-[#C5A059] overflow-hidden shrink-0 shadow-md bg-white">
-                  <img src={item.img} alt={item.name} className="w-full h-full object-cover" />
+                  <img
+                    src={item.img}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
                 {/* Chat Bubble */}
-                <div className={`relative flex-1 bg-white p-5 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-gray-50
-                  ${isEven 
-                    ? 'rounded-bl-none after:content-[""] after:absolute after:bottom-0 after:right-full after:border-[10px] after:border-transparent after:border-r-white after:translate-y-0' 
-                    : 'rounded-br-none after:content-[""] after:absolute after:bottom-0 after:left-full after:border-[10px] after:border-transparent after:border-l-white after:translate-y-0'
+                <div
+                  className={`relative flex-1 bg-white p-5 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-gray-50
+                  ${
+                    isEven
+                      ? 'rounded-bl-none after:content-[""] after:absolute after:bottom-0 after:right-full after:border-[10px] after:border-transparent after:border-r-white after:translate-y-0'
+                      : 'rounded-br-none after:content-[""] after:absolute after:bottom-0 after:left-full after:border-[10px] after:border-transparent after:border-l-white after:translate-y-0'
                   }`}
                 >
-                  <h4 className="text-[#1A2B23] font-bold text-sm mb-1">{item.title}</h4>
-                  <p className="text-gray-400 text-[10px] leading-relaxed mb-4">{item.text}</p>
-                  
+                  <h4 className="text-[#1A2B23] font-bold text-sm mb-1">
+                    {item.title}
+                  </h4>
+                  <p className="text-gray-400 text-[10px] leading-relaxed mb-4">
+                    {item.text}
+                  </p>
+
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">
                       {item.handle}
