@@ -267,10 +267,22 @@ router.get("/bookings", authMiddleware, async (req, res) => {
   try {
     const effectiveId = await getEffectiveAgentId(req.user.id);
     res.json(
-      await prisma.booking.findMany({
-        where: { agentId: effectiveId },
-        orderBy: { createdAt: "desc" },
-      }),
+      await prisma.booking
+        .findMany({
+          where: { agentId: effectiveId },
+          orderBy: { createdAt: "desc" },
+        })
+        .then((bookings) =>
+          bookings.map((b) => ({
+            ...b,
+            startDate: b.startDate
+              ? new Date(b.startDate).toISOString().split("T")[0]
+              : null,
+            endDate: b.endDate
+              ? new Date(b.endDate).toISOString().split("T")[0]
+              : null,
+          })),
+        ),
     );
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -289,6 +301,12 @@ router.get("/traveller/bookings", authMiddleware, async (req, res) => {
     res.json(
       bookings.map((b) => ({
         ...b,
+        startDate: b.startDate
+          ? new Date(b.startDate).toISOString().split("T")[0]
+          : null,
+        endDate: b.endDate
+          ? new Date(b.endDate).toISOString().split("T")[0]
+          : null,
         title: b.listing?.title || null,
         listingPrice: b.listing ? parseFloat(b.listing.price) : null,
         listingDuration: b.listing?.duration || null,
@@ -1151,6 +1169,8 @@ router.post("/public/message", async (req, res) => {
       message,
       travellerId,
     } = req.body;
+    // look up agentId by companyName so agent inbox can find it
+    const agent = await prisma.hamroAgent.findFirst({ where: { companyName } });
     const newMessage = await prisma.message.create({
       data: {
         companyName,
@@ -1159,6 +1179,7 @@ router.post("/public/message", async (req, res) => {
         subject,
         message,
         travellerId: travellerId || null,
+        agentId: agent?.id || null,
         senderRole: "traveller",
       },
     });
