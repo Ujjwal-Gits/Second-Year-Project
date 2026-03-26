@@ -285,7 +285,7 @@ const Testimonials = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: false, amount: 0.2 }}
-            className="absolute top-[52%] mt-[20px] right-[7%] z-20 w-[200px]"
+            className="absolute top-[30%] left-[62%] z-20 w-[200px]"
           >
             <div className="bg-white rounded-[2rem] border-[2px] border-[#C5A059] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.06)] flex flex-col">
               <div className="flex justify-center pt-5">
