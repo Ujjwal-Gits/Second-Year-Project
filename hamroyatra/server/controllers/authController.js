@@ -156,6 +156,31 @@ exports.login = async (req, res) => {
       );
     }
 
+    // demo accounts — no DB needed
+    if (email === "traveller@test.com" && password === "12345678") {
+      return sendToken(
+        {
+          id: "demo-traveller",
+          email,
+          fullName: "Demo Traveller",
+          role: "traveller",
+        },
+        "traveller",
+        200,
+        res,
+        "Logged in Successfully",
+      );
+    }
+    if (email === "agent@test.com" && password === "12345678") {
+      return sendToken(
+        { id: "demo-agent", email, fullName: "Demo Agent", role: "agent" },
+        "agent",
+        200,
+        res,
+        "Logged in Successfully",
+      );
+    }
+
     let user = await prisma.hamroTraveller.findUnique({ where: { email } });
     let type = "traveller";
     if (!user) {

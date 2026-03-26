@@ -50,60 +50,6 @@ app.get("/", (req, res) =>
   res.json({ message: "Hamroyatra API is running", status: "OK" }),
 );
 
-// one-time URL fix — remove after running once
-app.get("/api/fix-image-urls", async (req, res) => {
-  const prisma = require("./config/prisma");
-  const OLD = "http://localhost:5000";
-  const NEW = "https://second-year-project-heoc.onrender.com";
-  const fix = (v) =>
-    typeof v === "string" && v.startsWith(OLD) ? v.replace(OLD, NEW) : v;
-  try {
-    const agents = await prisma.hamroAgent.findMany();
-    let ac = 0;
-    for (const a of agents) {
-      const d = {};
-      if (fix(a.panImage) !== a.panImage) d.panImage = fix(a.panImage);
-      if (fix(a.citizenshipImage) !== a.citizenshipImage)
-        d.citizenshipImage = fix(a.citizenshipImage);
-      if (fix(a.profileImage) !== a.profileImage)
-        d.profileImage = fix(a.profileImage);
-      if (fix(a.coverImage) !== a.coverImage) d.coverImage = fix(a.coverImage);
-      if (Object.keys(d).length) {
-        await prisma.hamroAgent.update({ where: { id: a.id }, data: d });
-        ac++;
-      }
-    }
-    const listings = await prisma.listing.findMany();
-    let lc = 0;
-    for (const l of listings) {
-      const imgs = (l.images || []).map(fix);
-      if (imgs.join() !== (l.images || []).join()) {
-        await prisma.listing.update({
-          where: { id: l.id },
-          data: { images: imgs },
-        });
-        lc++;
-      }
-    }
-    const guides = await prisma.guide.findMany();
-    let gc = 0;
-    for (const g of guides) {
-      const d = {};
-      if (fix(g.profileImage) !== g.profileImage)
-        d.profileImage = fix(g.profileImage);
-      if (fix(g.certificateImage) !== g.certificateImage)
-        d.certificateImage = fix(g.certificateImage);
-      if (Object.keys(d).length) {
-        await prisma.guide.update({ where: { id: g.id }, data: d });
-        gc++;
-      }
-    }
-    res.json({ ok: true, agentsFixed: ac, listingsFixed: lc, guidesFixed: gc });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 app.use((req, res) => {
   res.status(404).json({ error: `Endpoint not found: ${req.url}` });
 });
