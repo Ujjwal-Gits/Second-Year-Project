@@ -13,16 +13,14 @@ const SERVICE_TYPES = [
 
 const VerificationProcess = ({ isAuthenticated, user }) => {
   const navigate = useNavigate();
-  const token = localStorage.getItem("token"); // Keep for legacy if needed elsewhere
-  const isUpgrade = Boolean(isAuthenticated);
+  const isAgent = user?.role === "agent";
+  const isUpgrade = isAuthenticated && isAgent;
+  const isTraveller = isAuthenticated && user?.role === "traveller";
 
+  // only redirect if still loading session (null = loading, false = not logged in)
+  // travellers and guests see the page with a lock overlay
   useEffect(() => {
-    // Only redirect if we ARE NOT authenticated and we finished app initialization
-    if (isAuthenticated === false) {
-      // Maybe wait a bit or check a global loading state
-      // For now, let's just assume if it's explicitly false, we redirect
-      navigate("/login", { state: { from: "/become-partner" } });
-    }
+    // no redirect — we show lock overlay instead
   }, [isAuthenticated, navigate]);
 
   const [step, setStep] = useState(isUpgrade ? 2 : 1);
@@ -53,7 +51,7 @@ const VerificationProcess = ({ isAuthenticated, user }) => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && isAgent) {
       setFormData((prev) => ({
         ...prev,
         fullName: user.fullName || prev.fullName,
@@ -63,13 +61,11 @@ const VerificationProcess = ({ isAuthenticated, user }) => {
         legalCompanyName: user.companyName || prev.legalCompanyName,
         location: user.location || prev.location,
       }));
-      // Lock fields if they already have a value from profile
       if (user.companyName) setCompanyNameLocked(true);
       if (user.location) setLocationLocked(true);
-      // Automate flow for authenticated users
       if (step === 1) setStep(2);
     }
-  }, [user, step]);
+  }, [user]);
 
   const [previews, setPreviews] = useState({
     pan: null,
@@ -279,6 +275,31 @@ const VerificationProcess = ({ isAuthenticated, user }) => {
             {loading && (
               <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-50 flex flex-col items-center justify-center">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+
+            {/* Lock overlay for travellers and guests */}
+            {(isTraveller || isAuthenticated === false) && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-[6px] z-40 flex flex-col items-center justify-center gap-4 rounded-sm">
+                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+                  <span className="material-icons text-3xl text-gray-400">
+                    lock
+                  </span>
+                </div>
+                <div className="text-center px-8">
+                  <p className="text-[13px] font-black text-[#0D1F18] uppercase tracking-widest mb-2">
+                    Agent Access Only
+                  </p>
+                  <p className="text-[11px] font-bold text-gray-400 leading-relaxed">
+                    Please login as an Agent to Apply for Verification
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/login")}
+                  className="mt-2 px-6 h-10 bg-primary text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#0D1F18] transition-colors"
+                >
+                  Login as Agent
+                </button>
               </div>
             )}
 
