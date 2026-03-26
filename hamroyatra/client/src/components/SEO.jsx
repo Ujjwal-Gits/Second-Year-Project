@@ -4,7 +4,7 @@
 import { Helmet } from "react-helmet-async";
 
 const BASE_URL = "https://hamroyatra.ujjwalrupakheti.com.np";
-const DEFAULT_IMAGE = `${BASE_URL}/android-chrome-512x512.png`;
+const DEFAULT_IMAGE = `${BASE_URL}/og-image.png`;
 
 const SEO = ({
   title,
