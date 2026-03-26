@@ -364,8 +364,8 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
 
   // Minimalist slight curvature (Professional Architectural Standard)
   const roundedClass = "rounded-md";
-  const inputHeight = "h-[46px] sm:h-[54px]";
-  const buttonHeight = "h-[46px] sm:h-[54px]";
+  const inputHeight = "h-[48px]";
+  const buttonHeight = "h-[48px]";
 
   return (
     <motion.div
@@ -630,7 +630,7 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
           </div>
 
           {/* Content Area: Compressed Proportions */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-4 sm:py-10 custom-scrollbar">
+          <div className="flex-1 overflow-hidden px-6 sm:px-12 py-4 sm:py-6 custom-scrollbar">
             <AnimatePresence mode="wait">
               <motion.div
                 key={mode + role}
