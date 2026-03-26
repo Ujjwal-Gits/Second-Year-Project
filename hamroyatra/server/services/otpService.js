@@ -33,12 +33,16 @@ const sendOTP = async (email, purpose = "registration") => {
   const subject =
     purpose === "team-invite"
       ? "HamroYatra — Team Member Invitation OTP"
-      : "HamroYatra — Verify Your Email";
+      : purpose === "password-reset"
+        ? "HamroYatra — Password Reset OTP"
+        : "HamroYatra — Verify Your Email";
 
   const bodyText =
     purpose === "team-invite"
       ? `You are being added as a team member on HamroYatra. Use this OTP to confirm: ${otp}`
-      : `Your HamroYatra registration OTP is: ${otp}`;
+      : purpose === "password-reset"
+        ? `Your HamroYatra password reset OTP is: ${otp}`
+        : `Your HamroYatra registration OTP is: ${otp}`;
 
   await transporter.sendMail({
     from: `"HamroYatra" <${process.env.SMTP_EMAIL}>`,

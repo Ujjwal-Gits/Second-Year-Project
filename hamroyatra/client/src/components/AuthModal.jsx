@@ -32,6 +32,17 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
 
+  // Forgot password state
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1=email, 2=otp, 3=new password
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotPassword, setForgotPassword] = useState("");
+  const [forgotConfirm, setForgotConfirm] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
   // Reset FORM state every time the modal path changes
   useEffect(() => {
     setFormData({
@@ -232,6 +243,77 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
     }
   };
 
+  // ── Forgot Password Handlers ──────────────────────────────────────────────
+  const handleForgotSendOtp = async () => {
+    setForgotError("");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!forgotEmail || !emailRegex.test(forgotEmail))
+      return setForgotError("Please enter a valid email address");
+    setForgotLoading(true);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/forgot-password/send-otp`,
+        { email: forgotEmail },
+      );
+      setForgotStep(2);
+    } catch (err) {
+      setForgotError(err.response?.data?.error || "Failed to send OTP");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotVerifyOtp = async () => {
+    setForgotError("");
+    if (!forgotOtp || forgotOtp.length !== 6)
+      return setForgotError("Enter the 6-digit OTP");
+    setForgotLoading(true);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/forgot-password/verify-otp`,
+        { email: forgotEmail, otp: forgotOtp },
+      );
+      setForgotStep(3);
+    } catch (err) {
+      setForgotError(err.response?.data?.error || "Invalid OTP");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotReset = async () => {
+    setForgotError("");
+    if (!forgotPassword || forgotPassword.length < 6)
+      return setForgotError("Password must be at least 6 characters");
+    if (forgotPassword !== forgotConfirm)
+      return setForgotError("Passwords do not match");
+    setForgotLoading(true);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/forgot-password/reset`,
+        {
+          email: forgotEmail,
+          password: forgotPassword,
+          confirmPassword: forgotConfirm,
+        },
+      );
+      setForgotSuccess(true);
+      setTimeout(() => {
+        setForgotMode(false);
+        setForgotStep(1);
+        setForgotEmail("");
+        setForgotOtp("");
+        setForgotPassword("");
+        setForgotConfirm("");
+        setForgotSuccess(false);
+      }, 2500);
+    } catch (err) {
+      setForgotError(err.response?.data?.error || "Failed to reset password");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const modalVariants = {
     initial: { opacity: 0 },
     animate: {
@@ -364,6 +446,162 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
 
         {/* Right Wing: Interaction Panel */}
         <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
+          {/* ── Forgot Password Overlay ── */}
+          <AnimatePresence>
+            {forgotMode && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.25 }}
+                className="absolute inset-0 bg-white z-30 flex flex-col px-6 sm:px-12 py-8 overflow-y-auto"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="text-2xl text-primary font-bold tracking-tight leading-none">
+                      Reset Password
+                    </h3>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-[0.3em] mt-1">
+                      {forgotStep === 1
+                        ? "Enter your email"
+                        : forgotStep === 2
+                          ? "Enter OTP"
+                          : "Set new password"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setForgotMode(false);
+                      setForgotStep(1);
+                      setForgotError("");
+                    }}
+                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-300 hover:text-primary transition-colors"
+                  >
+                    <span className="material-icons text-2xl">close</span>
+                  </button>
+                </div>
+
+                {forgotSuccess ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center flex-1 gap-4"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="material-icons text-primary text-3xl">
+                        check_circle
+                      </span>
+                    </div>
+                    <p className="text-[13px] font-black text-primary uppercase tracking-widest">
+                      Password Reset!
+                    </p>
+                    <p className="text-[11px] text-gray-400 text-center">
+                      You can now log in with your new password.
+                    </p>
+                  </motion.div>
+                ) : (
+                  <div className="space-y-4 max-w-[420px] w-full mx-auto">
+                    {forgotError && (
+                      <div className="p-3 bg-red-50 border border-red-100 rounded text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">
+                        {forgotError}
+                      </div>
+                    )}
+
+                    {forgotStep === 1 && (
+                      <>
+                        <input
+                          type="email"
+                          placeholder="Email Address"
+                          value={forgotEmail}
+                          onChange={(e) => {
+                            setForgotEmail(e.target.value);
+                            setForgotError("");
+                          }}
+                          className={`w-full h-[46px] sm:h-[54px] bg-white border border-gray-200 rounded-md px-6 text-[14px] font-bold focus:ring-0 focus:border-[#C5A059] transition-all placeholder:text-gray-300 text-primary outline-none`}
+                        />
+                        <button
+                          onClick={handleForgotSendOtp}
+                          disabled={forgotLoading}
+                          className="w-full h-[46px] sm:h-[54px] bg-primary text-white rounded-md text-[11px] font-black uppercase tracking-[0.4em] disabled:opacity-70 transition-all"
+                        >
+                          {forgotLoading ? "Sending..." : "Send OTP"}
+                        </button>
+                      </>
+                    )}
+
+                    {forgotStep === 2 && (
+                      <>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">
+                          OTP sent to{" "}
+                          <span className="text-primary">{forgotEmail}</span>
+                        </p>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="Enter 6-digit OTP"
+                          value={forgotOtp}
+                          onChange={(e) => {
+                            setForgotOtp(e.target.value.replace(/\D/g, ""));
+                            setForgotError("");
+                          }}
+                          className="w-full h-[46px] sm:h-[54px] bg-white border border-gray-200 rounded-md px-6 text-[18px] font-black tracking-[0.4em] text-center focus:border-[#C5A059] outline-none text-primary"
+                        />
+                        <button
+                          onClick={handleForgotVerifyOtp}
+                          disabled={forgotLoading}
+                          className="w-full h-[46px] sm:h-[54px] bg-primary text-white rounded-md text-[11px] font-black uppercase tracking-[0.4em] disabled:opacity-70 transition-all"
+                        >
+                          {forgotLoading ? "Verifying..." : "Verify OTP"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setForgotStep(1);
+                            setForgotOtp("");
+                            setForgotError("");
+                          }}
+                          className="w-full text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-primary transition-colors text-center"
+                        >
+                          ← Back
+                        </button>
+                      </>
+                    )}
+
+                    {forgotStep === 3 && (
+                      <>
+                        <input
+                          type="password"
+                          placeholder="New Password"
+                          value={forgotPassword}
+                          onChange={(e) => {
+                            setForgotPassword(e.target.value);
+                            setForgotError("");
+                          }}
+                          className="w-full h-[46px] sm:h-[54px] bg-white border border-gray-200 rounded-md px-6 text-[14px] font-bold focus:border-[#C5A059] outline-none text-primary placeholder:text-gray-300 transition-all"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Confirm New Password"
+                          value={forgotConfirm}
+                          onChange={(e) => {
+                            setForgotConfirm(e.target.value);
+                            setForgotError("");
+                          }}
+                          className="w-full h-[46px] sm:h-[54px] bg-white border border-gray-200 rounded-md px-6 text-[14px] font-bold focus:border-[#C5A059] outline-none text-primary placeholder:text-gray-300 transition-all"
+                        />
+                        <button
+                          onClick={handleForgotReset}
+                          disabled={forgotLoading}
+                          className="w-full h-[46px] sm:h-[54px] bg-primary text-white rounded-md text-[11px] font-black uppercase tracking-[0.4em] disabled:opacity-70 transition-all"
+                        >
+                          {forgotLoading ? "Resetting..." : "Reset Password"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
           {/* Compact Header */}
           <div className="px-6 sm:px-12 pt-6 sm:pt-12 flex items-center justify-between z-20 shrink-0">
             <div className="space-y-1">
@@ -573,7 +811,14 @@ const AuthModal = ({ onClose, onAuthSuccess }) => {
                           className={`w-full ${inputHeight} bg-white border border-gray-200 ${roundedClass} px-6 text-[14px] font-bold focus:ring-0 focus:border-[#C5A059] [&:not(:placeholder-shown)]:border-[#C5A059] transition-all placeholder:text-gray-300 text-primary outline-none`}
                         />
                         <div className="flex justify-end px-1">
-                          <button className="text-[10px] text-gray-400 font-bold hover:text-primary transition-colors tracking-widest uppercase">
+                          <button
+                            onClick={() => {
+                              setForgotMode(true);
+                              setForgotStep(1);
+                              setForgotError("");
+                            }}
+                            className="text-[10px] text-gray-400 font-bold hover:text-primary transition-colors tracking-widest uppercase"
+                          >
                             Forgot Password?
                           </button>
                         </div>
