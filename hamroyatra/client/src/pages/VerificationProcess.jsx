@@ -132,7 +132,21 @@ const VerificationProcess = ({ isAuthenticated, user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (step < 3) return setStep(step + 1);
+    if (step < 3) {
+      // validate step 2 before proceeding
+      if (step === 2) {
+        if (!formData.legalCompanyName?.trim())
+          return setError(
+            "Company name is required. Please enter your registered business name.",
+          );
+        if (!formData.location?.trim())
+          return setError("Location is required.");
+        if (formData.serviceTypes.length === 0)
+          return setError("Please select at least one service type.");
+        setError(null);
+      }
+      return setStep(step + 1);
+    }
 
     setLoading(true);
     setError(null);
