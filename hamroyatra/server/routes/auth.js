@@ -20,28 +20,28 @@ const {
 } = require("../services/otpService");
 const bcrypt = require("bcryptjs");
 
-// Rate limiter: max 3 OTP requests per email per 15 minutes
+// Rate limiter: max 5 OTP requests per email per 5 minutes
 const otpRequestLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 3,
-  keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
-  message: { error: "Too many OTP requests. Please wait 15 minutes." },
-});
-
-// Rate limiter: max 5 OTP verify attempts per 15 minutes
-const otpVerifyLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 5 * 60 * 1000,
   max: 5,
   keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
-  message: { error: "Too many attempts. Please request a new OTP." },
+  message: { error: "Too many OTP requests. Please wait 5 minutes." },
 });
 
-// Rate limiter: max 3 password reset attempts per 15 minutes
-const resetPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 3,
+// Rate limiter: max 5 OTP verify attempts per 5 minutes
+const otpVerifyLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 5,
   keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
-  message: { error: "Too many reset attempts. Please wait 15 minutes." },
+  message: { error: "Too many attempts. Please wait 5 minutes." },
+});
+
+// Rate limiter: max 5 password reset attempts per 5 minutes
+const resetPasswordLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.body.email || ipKeyGenerator(req),
+  message: { error: "Too many reset attempts. Please wait 5 minutes." },
 });
 
 // Send OTP to email before registration
@@ -109,7 +109,15 @@ router.post(
           message: "If this email is registered, an OTP has been sent.",
         });
 
-      await sendOTP(email, "password-reset");
+      // Google OAuth users can also reset — they'll get a real password set
+      try {
+        await sendOTP(email, "password-reset");
+      } catch (smtpErr) {
+        console.error("SMTP Error in forgot password:", smtpErr.message);
+        return res
+          .status(500)
+          .json({ error: "Failed to send OTP email. Please try again." });
+      }
       res.json({ message: "OTP sent to your email" });
     } catch (err) {
       console.error("Forgot Password OTP Error:", err);

@@ -12,8 +12,11 @@ const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_PASS, // Gmail App Password (not your login password)
+    pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
 // Generate a cryptographically secure 6-digit OTP
