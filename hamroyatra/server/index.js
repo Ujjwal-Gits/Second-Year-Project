@@ -50,6 +50,42 @@ app.get("/", (req, res) =>
   res.json({ message: "Hamroyatra API is running", status: "OK" }),
 );
 
+// one-time demo seed — POST so it only runs when deliberately called
+// call: POST https://second-year-project-heoc.onrender.com/api/seed-demo
+app.post("/api/seed-demo", async (req, res) => {
+  const prisma = require("./config/prisma");
+  const bcrypt = require("bcryptjs");
+  try {
+    const hashed = await bcrypt.hash("12345678", 12);
+    const traveller = await prisma.hamroTraveller.upsert({
+      where: { email: "traveller@test.com" },
+      update: { password: hashed },
+      create: {
+        fullName: "Demo Traveller",
+        email: "traveller@test.com",
+        password: hashed,
+        role: "traveller",
+      },
+    });
+    const agent = await prisma.hamroAgent.upsert({
+      where: { email: "agent@test.com" },
+      update: { password: hashed },
+      create: {
+        fullName: "Demo Agent",
+        email: "agent@test.com",
+        password: hashed,
+        role: "agent",
+        companyName: "Demo Agency",
+        verificationStatus: "pending",
+        serviceTypes: ["trekking", "travel"],
+      },
+    });
+    res.json({ ok: true, traveller: traveller.email, agent: agent.email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: `Endpoint not found: ${req.url}` });
 });
