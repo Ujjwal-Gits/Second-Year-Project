@@ -124,6 +124,7 @@ const AgentProfile = ({ isAuthenticated, user }) => {
   const [msgForm, setMsgForm] = useState({ name: "", email: "", message: "" });
   const [msgStatus, setMsgStatus] = useState({ type: "", msg: "" });
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [nameLocked, setNameLocked] = useState(true);
   const [profileForm, setProfileForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -224,7 +225,9 @@ const AgentProfile = ({ isAuthenticated, user }) => {
   };
 
   const openProfileEdit = () => {
+    setNameLocked(true);
     setProfileForm({
+      fullName: agent.fullName || "",
       companyName: agent.companyName || "",
       bio: agent.bio || "",
       phoneNo: agent.phoneNo || "",
@@ -236,6 +239,7 @@ const AgentProfile = ({ isAuthenticated, user }) => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (!profileForm.fullName?.trim()) return;
     setSaving(true);
     try {
       await dashboardAPI.updateProfile(profileForm);
@@ -877,6 +881,40 @@ const AgentProfile = ({ isAuthenticated, user }) => {
                 </button>
               </div>
               <form onSubmit={handleSaveProfile} className="p-6 space-y-3">
+                {/* Agent Name — locked by default, pen to unlock */}
+                <div>
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">
+                    Agent Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      readOnly={nameLocked}
+                      value={profileForm.fullName || ""}
+                      onChange={(e) =>
+                        setProfileForm((f) => ({
+                          ...f,
+                          fullName: e.target.value,
+                        }))
+                      }
+                      className={`w-full h-11 rounded-xl px-4 pr-10 text-[12px] font-medium outline-none transition-all ${
+                        nameLocked
+                          ? "bg-gray-50 text-gray-400 cursor-not-allowed border border-gray-100"
+                          : "bg-[#F7F6F3] text-[#0D1F18] focus:ring-2 focus:ring-primary/20 border border-transparent"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setNameLocked((l) => !l)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                    >
+                      <span className="material-icons text-[16px]">
+                        {nameLocked ? "edit" : "lock_open"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
                 {[
                   {
                     key: "companyName",
