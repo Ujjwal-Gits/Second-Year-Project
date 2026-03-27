@@ -41,6 +41,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import SafetyAndTrust from "./pages/SafetyAndTrust";
 import ContactUs from "./pages/ContactUs";
+import AuthCallback from "./pages/AuthCallback";
 
 function App() {
   const [loading, setLoading] = useState(() => {
@@ -271,6 +272,10 @@ function App() {
           />
           <Route path="/safety-and-trust" element={<SafetyAndTrust />} />
           <Route path="/contact" element={<ContactUs />} />
+          <Route
+            path="/auth/callback"
+            element={<AuthCallback onAuthSuccess={handleAuthSuccess} />}
+          />
           <Route
             path="/plan"
             element={

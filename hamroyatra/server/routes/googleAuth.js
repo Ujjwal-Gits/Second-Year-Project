@@ -1,4 +1,6 @@
-// Google OAuth — finds or creates a traveller account, then issues a JWT cookie
+// Google OAuth — finds or creates a traveller account, then redirects with token in URL.
+// Token is passed via query param so the frontend sets the cookie from its own domain,
+// avoiding third-party cookie blocking on Safari/Firefox/iOS.
 
 const express = require("express");
 const router = express.Router();
@@ -15,7 +17,7 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_CALLBACK_URL,
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (_accessToken, _refreshToken, profile, done) => {
       try {
         const email = profile.emails?.[0]?.value;
         const fullName = profile.displayName;
@@ -87,14 +89,11 @@ router.get("/google/callback", (req, res, next) => {
       { expiresIn: "24h" },
     );
 
-    res.cookie("hv_token", token, {
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    });
-
-    res.redirect(`${process.env.CLIENT_URL}/`);
+    // Redirect to frontend with token in URL — frontend sets the cookie from its own domain.
+    // This avoids third-party cookie blocking on Safari/Firefox/iOS devices.
+    res.redirect(
+      `${process.env.CLIENT_URL}/auth/callback?token=${encodeURIComponent(token)}`,
+    );
   })(req, res, next);
 });
 

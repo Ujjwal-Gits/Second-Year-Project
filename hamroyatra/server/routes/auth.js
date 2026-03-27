@@ -171,10 +171,38 @@ router.post(
   },
 );
 
+// exchanges a URL token (from Google OAuth redirect) for an HTTP-only cookie
+router.post("/set-cookie", async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: "Token required" });
+
+    const decoded = require("jsonwebtoken").verify(token, process.env.JWT_SECRET);
+
+    // fetch the real user to return full profile
+    let user;
+    if (decoded.role === "traveller") {
+      user = await prisma.hamroTraveller.findUnique({ where: { id: decoded.id }, omit: { password: true } });
+    } else if (decoded.role === "agent") {
+      user = await prisma.hamroAgent.findUnique({ where: { id: decoded.id }, omit: { password: true } });
+    }
+
+    res.cookie("hv_token", token, {
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
+
+    res.json({ ok: true, user: user || decoded });
+  } catch (err) {
+    res.status(401).json({ error: "Invalid token" });
+  }
+});
+
 router.get("/verify", authMiddleware, async (req, res) => {
   try {
     if (req.user.role === "superadmin")
-      return res.json({ valid: true, user: req.user });
 
     let user;
     if (req.user.role === "agent") {
