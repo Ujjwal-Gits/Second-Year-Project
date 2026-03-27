@@ -177,14 +177,23 @@ router.post("/set-cookie", async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: "Token required" });
 
-    const decoded = require("jsonwebtoken").verify(token, process.env.JWT_SECRET);
+    const decoded = require("jsonwebtoken").verify(
+      token,
+      process.env.JWT_SECRET,
+    );
 
     // fetch the real user to return full profile
     let user;
     if (decoded.role === "traveller") {
-      user = await prisma.hamroTraveller.findUnique({ where: { id: decoded.id }, omit: { password: true } });
+      user = await prisma.hamroTraveller.findUnique({
+        where: { id: decoded.id },
+        omit: { password: true },
+      });
     } else if (decoded.role === "agent") {
-      user = await prisma.hamroAgent.findUnique({ where: { id: decoded.id }, omit: { password: true } });
+      user = await prisma.hamroAgent.findUnique({
+        where: { id: decoded.id },
+        omit: { password: true },
+      });
     }
 
     res.cookie("hv_token", token, {
@@ -203,6 +212,7 @@ router.post("/set-cookie", async (req, res) => {
 router.get("/verify", authMiddleware, async (req, res) => {
   try {
     if (req.user.role === "superadmin")
+      return res.json({ valid: true, user: req.user });
 
     let user;
     if (req.user.role === "agent") {
