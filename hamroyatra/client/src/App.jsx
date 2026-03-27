@@ -74,15 +74,23 @@ function App() {
   React.useEffect(() => {
     const verifySession = async () => {
       try {
+        const fallbackToken = localStorage.getItem("hv_token_fallback");
+        const headers = fallbackToken
+          ? { Authorization: `Bearer ${fallbackToken}` }
+          : {};
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/auth/verify`,
-          { withCredentials: true },
+          { withCredentials: true, headers },
         );
         if (response.data.valid) {
           setIsAuthenticated(true);
           setAuthUser(response.data.user);
+        } else {
+          localStorage.removeItem("hv_token_fallback");
+          setIsAuthenticated(false);
         }
       } catch (err) {
+        localStorage.removeItem("hv_token_fallback");
         setIsAuthenticated(false);
       }
     };
@@ -105,6 +113,7 @@ function App() {
         withCredentials: true,
       });
     } catch (e) {}
+    localStorage.removeItem("hv_token_fallback");
     setIsAuthenticated(false);
     setAuthUser(null);
     navigate("/");

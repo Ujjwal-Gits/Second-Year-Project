@@ -20,6 +20,7 @@ const AuthCallback = ({ onAuthSuccess }) => {
     }
 
     // Exchange the URL token for a proper HTTP-only cookie via the backend
+    // Also store in localStorage as fallback for browsers that block cross-site cookies
     axios
       .post(
         `${import.meta.env.VITE_API_URL}/api/auth/set-cookie`,
@@ -28,6 +29,8 @@ const AuthCallback = ({ onAuthSuccess }) => {
       )
       .then((res) => {
         if (res.data?.user && onAuthSuccess) {
+          // store token in localStorage so verify works on refresh even if cookie is blocked
+          localStorage.setItem("hv_token_fallback", token);
           onAuthSuccess(res.data.user);
         }
         navigate("/", { replace: true });
