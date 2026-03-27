@@ -481,9 +481,20 @@ const ExploreDetail = ({ isAuthenticated, user }) => {
         payload,
         { withCredentials: true },
       );
+      // reset the form immediately
+      setBookingForm({
+        startDate: "",
+        endDate: "",
+        roomCount: 1,
+        roomSelection: { ac: 0, nonAc: 0, family: 0, couple: 0 },
+        guestName: user?.fullName || "",
+        guestEmail: user?.email || "",
+        guestPhone: user?.phoneNo || "",
+        notes: "",
+      });
       setBookingStatus({
         type: "success",
-        msg: "Reservation submitted! The operator will confirm shortly.",
+        msg: "Your Booking Is Confirmed. Check your Dashboard for Confirmation.",
       });
     } catch (err) {
       console.error("Booking failed:", err.response?.data || err.message);
